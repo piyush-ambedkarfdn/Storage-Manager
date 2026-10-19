@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, CircleAlert, Copy, Loader2, RotateCcw, Trash2, WifiOff } from "lucide-react";
+import { CheckCircle2, CircleAlert, Copy, Loader2, Plus, RotateCcw, Trash2, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BlobThumb } from "@/components/upload/Dropzone";
 import type { useUploadQueue } from "@/hooks/useUploadQueue";
@@ -23,11 +23,33 @@ function statusText(i: QueueItem, t: TFunction<UploadKey>) {
 export function UploadQueue({ queue, onNewBatch }: { queue: Queue; onNewBatch?: () => void }) {
   const t = useT(uploadMessages);
   const { items, batches, counts, online } = queue;
-  if (!items.length) return <p className="text-sm text-muted-foreground">{t("queueEmpty")}</p>;
+  const newBatchButton = onNewBatch ? (
+    <Button className="min-h-12 w-full text-base" onClick={onNewBatch}>
+      <Plus aria-hidden /> {t("newBatch")}
+    </Button>
+  ) : null;
+
+  if (!items.length) {
+    return (
+      <section className="flex flex-col gap-3" aria-label={t("queueTitle")}>
+        <p className="text-sm text-muted-foreground">{t("queueEmpty")}</p>
+        {newBatchButton}
+      </section>
+    );
+  }
   const savedReports = batches.filter((b) => b.reportId).length;
+  const allFinished = counts.pending === 0 && counts.failed === 0;
 
   return (
     <section className="flex flex-col gap-3" aria-label={t("queueTitle")}>
+      {allFinished ? (
+        <div role="status" className="flex flex-col gap-3 rounded-lg border border-success bg-success/10 p-3">
+          <p className="flex items-center gap-2 font-semibold">
+            <CheckCircle2 className="size-5 text-success" aria-hidden /> {t("allDone")}
+          </p>
+          {newBatchButton}
+        </div>
+      ) : null}
       {!online ? (
         <div role="status" className="flex items-start gap-2 rounded-md border border-marigold bg-marigold/15 px-3 py-2 text-sm">
           <WifiOff className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -110,12 +132,9 @@ export function UploadQueue({ queue, onNewBatch }: { queue: Queue; onNewBatch?: 
             {t("clearDone")}
           </Button>
         ) : null}
-        {onNewBatch ? (
-          <Button className="min-h-11" onClick={onNewBatch}>
-            {t("newBatch")}
-          </Button>
-        ) : null}
       </div>
+      {/* while photos are still uploading staff can already start the next batch; the queue keeps working */}
+      {!allFinished ? newBatchButton : null}
     </section>
   );
 }

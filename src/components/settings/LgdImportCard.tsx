@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { requestJson } from "@/hooks/useOptions";
 import { useInvalidatePlaces, usePlaces } from "@/hooks/usePlaces";
-import { LgdFormatError, mapLgdTable, readLgdTable } from "@/lib/lgd/parse";
+import { LgdFormatError, readLgdFiles } from "@/lib/lgd/parse";
 import { LGD_MAX_ROWS } from "@/lib/schemas/places";
 import type { LgdLevelCounts, LgdParseResult, LgdResult } from "@/lib/lgd/types";
 import { useT } from "@/lib/i18n/provider";
@@ -41,27 +41,32 @@ export function LgdImportCard() {
   const invalidate = useInvalidatePlaces();
   const existing = usePlaces("district", { limit: 1000 });
   const [stage, setStage] = useState<Stage>("idle");
-  const [error, setError] = useState<{ message: string; missing: string[] } | null>(null);
+  const [error, setError] = useState<{ message: string; missing: string[]; file?: string } | null>(null);
   const [parsed, setParsed] = useState<LgdParseResult | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [progress, setProgress] = useState("");
   const [result, setResult] = useState<LgdResult | null>(null);
 
-  async function onFile(file: File) {
+  async function onFiles(files: File[]) {
     setError(null);
     setResult(null);
     setStage("reading");
     try {
-      const p = mapLgdTable(await readLgdTable(file));
+      const p = await readLgdFiles(files);
       const known = new Set((existing.data?.items ?? []).map((d) => d.name.trim().toLowerCase()));
       setParsed(p);
       setPicked(new Set(p.districts.filter((d) => known.has(d.name.toLowerCase())).map((d) => d.code)));
       setStage("parsed");
     } catch (err) {
-      setError({
-        message: err instanceof Error ? err.message : String(err),
-        missing: err instanceof LgdFormatError ? err.missing : [],
-      });
+      if (err instanceof LgdFormatError) {
+        setError({
+          message: err.code === "missing_columns" ? t("lgdMissing") : t(`err_${err.code}` as SettingsKey),
+          missing: err.missing,
+          file: err.fileName,
+        });
+      } else {
+        setError({ message: err instanceof Error ? err.message : String(err), missing: [] });
+      }
       setStage("idle");
     }
   }
@@ -120,12 +125,13 @@ export function LgdImportCard() {
           <FileUp className="size-4" aria-hidden /> {stage === "idle" ? t("lgdChoose") : t("lgdStartOver")}
           <input
             type="file"
-            accept=".csv,.xlsx,text/csv"
+            accept=".xls,.xlsx,.csv,.xml,text/csv"
+            multiple
             className="sr-only"
             disabled={stage === "reading" || stage === "working"}
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void onFile(f);
+              const files = [...(e.target.files ?? [])];
+              if (files.length) void onFiles(files);
               e.target.value = "";
             }}
           />
@@ -140,7 +146,10 @@ export function LgdImportCard() {
 
       {error ? (
         <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
-          <p>{error.message}</p>
+          <p>
+            {error.file ? <span className="font-mono text-xs">{error.file}: </span> : null}
+            {error.message}
+          </p>
           {error.missing.length ? (
             <ul className="mt-1 list-disc pl-5">
               {error.missing.map((m) => (
@@ -153,16 +162,19 @@ export function LgdImportCard() {
 
       {parsed ? (
         <>
-          <details className="text-sm">
-            <summary className="cursor-pointer text-muted-foreground">{t("lgdColumns")}</summary>
-            <ul className="mt-1 grid gap-x-6 sm:grid-cols-2">
-              {Object.entries(parsed.columns).map(([k, v]) => (
-                <li key={k}>
-                  <code className="text-xs">{k}</code> ← {v}
+          <div className="text-sm">
+            <div className="font-semibold">{t("lgdFiles")}</div>
+            <ul className="mt-1 flex flex-col gap-0.5">
+              {parsed.files.map((f) => (
+                <li key={f.name} className={f.kind === "blockList" || f.kind === "unknown" ? "text-muted-foreground" : undefined}>
+                  <span className="font-mono text-xs break-all">{f.name}</span> · {t(`kind_${f.kind}` as SettingsKey)} · {t("lgdRowsIn", { n: f.rows })}
                 </li>
               ))}
             </ul>
-          </details>
+            {parsed.notes.noPanchayat ? <p className="mt-1 text-muted-foreground">{t("lgdNoPanchayat", { n: parsed.notes.noPanchayat })}</p> : null}
+            {parsed.notes.blockFromPanchayat ? <p className="text-muted-foreground">{t("lgdBlockFromPanchayat", { n: parsed.notes.blockFromPanchayat })}</p> : null}
+            {parsed.notes.noBlock ? <p className="text-muted-foreground">{t("lgdNoBlock", { n: parsed.notes.noBlock })}</p> : null}
+          </div>
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1 text-sm font-semibold">{t("lgdDistricts")}</legend>
             <div className="flex max-h-56 flex-wrap gap-x-5 gap-y-2 overflow-y-auto rounded-md border p-3">
