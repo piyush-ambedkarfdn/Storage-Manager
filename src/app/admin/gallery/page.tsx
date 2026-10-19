@@ -10,6 +10,7 @@ import { FilterBar } from "@/components/gallery/FilterBar";
 import { FolderTree } from "@/components/gallery/FolderTree";
 import { PhotoGrid } from "@/components/gallery/PhotoGrid";
 import { ThemeFilterChips } from "@/components/gallery/ThemeFilterChips";
+import { CategoryFilterChips } from "@/components/categories/CategoryFilterChips";
 
 export const metadata: Metadata = { title: "Gallery" };
 
@@ -29,6 +30,7 @@ export default async function GalleryPage() {
             <Crumbs />
             <ActivityFilterChips />
             <ThemeFilterChips />
+            <CategoryFilterChips />
             <FilterBar />
             <PhotoGrid />
           </div>

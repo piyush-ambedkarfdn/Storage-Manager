@@ -35,6 +35,8 @@ export const createPhotoSchema = z.object({
   has_children: z.boolean().default(false),
   consent: z.enum(["yes", "no", "unknown"]),
   taken_by: z.string().trim().max(120).nullable().optional(),
+  /** program categories: fieldId → optionIds */
+  field_values: z.record(z.uuid(), z.array(z.uuid()).max(20)).default({}),
 });
 export type CreatePhotoInput = z.infer<typeof createPhotoSchema>;
 

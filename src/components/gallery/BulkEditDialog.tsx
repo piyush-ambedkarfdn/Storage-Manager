@@ -9,7 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { NameCombobox, type PlaceValue } from "@/components/upload/NameCombobox";
-import { ACTIVE_ACTIVITY_TYPES } from "@/config/activity-types";
+import { ProgramFieldsPicker } from "@/components/categories/ProgramFieldsPicker";
+import { useAllProgramFields } from "@/hooks/useProgramFields";
+import { categoriesMessages } from "@/lib/i18n/messages/categories";
+import type { FieldValues } from "@/types/program-fields";
+import { useActivityTypes } from "@/components/layout/ActivityTypesProvider";
 import { requestJson, useOptions } from "@/hooks/useOptions";
 import { usePlaces } from "@/hooks/usePlaces";
 import { useLocale, useT } from "@/lib/i18n/provider";
@@ -57,6 +61,15 @@ function Body({ ids, onOpenChange, onDone }: { ids: string[]; onOpenChange: (ope
   const [children, setChildren] = useState(KEEP);
   const [busy, setBusy] = useState(false);
 
+  const tcat = useT(categoriesMessages);
+  const { active: activeTypes } = useActivityTypes();
+  const { fields: allFields } = useAllProgramFields();
+  const programsWithFields = [...new Map(allFields.map((f) => [f.program_id, f.program_name ?? ""])).entries()];
+  const [catProgram, setCatProgram] = useState(KEEP);
+  const [catValues, setCatValues] = useState<FieldValues>({});
+  const catFields = allFields.filter((f) => f.program_id === catProgram);
+  const hasCategories = catProgram !== KEEP && Object.values(catValues).some((v) => v.length);
+
   const set: Record<string, unknown> = {};
   if (program !== KEEP) set.program_id = program;
   if (changePlace && district && block && panchayat && village) {
@@ -66,13 +79,19 @@ function Body({ ids, onOpenChange, onDone }: { ids: string[]; onOpenChange: (ope
   if (date) set.event_date = date;
   if (consent !== KEEP) set.consent = consent;
   if (children !== KEEP) set.has_children = children === "yes";
-  const ready = Object.keys(set).length > 0 && (!changePlace || !!village);
+  const ready = (Object.keys(set).length > 0 || hasCategories) && (!changePlace || !!village);
 
   async function apply() {
     setBusy(true);
     try {
-      const { updated } = await requestJson<{ updated: number }>("/api/photos/bulk", { method: "POST", body: { ids, set } });
+      const body = {
+        ids,
+        ...(Object.keys(set).length ? { set } : {}),
+        ...(hasCategories ? { categories: { program_id: catProgram, values: catValues } } : {}),
+      };
+      const { updated, skipped } = await requestJson<{ updated: number; skipped?: number }>("/api/photos/bulk", { method: "POST", body });
       toast.success(t("applied", { n: updated }));
+      if (skipped) toast.info(tcat("bulkSkipped", { n: skipped }));
       onDone();
       onOpenChange(false);
     } catch (err) {
@@ -106,6 +125,38 @@ function Body({ ids, onOpenChange, onDone }: { ids: string[]; onOpenChange: (ope
             </SelectContent>
           </Select>
         </div>
+
+        {programsWithFields.length ? (
+          <section className="flex flex-col gap-2 rounded-md border p-3">
+            <h3 className="text-sm font-semibold">{tcat("bulkCategories")}</h3>
+            <Label className="text-xs">{tcat("bulkProgram")}</Label>
+            <Select
+              value={catProgram}
+              onValueChange={(v) => {
+                setCatProgram(v);
+                setCatValues({});
+              }}
+            >
+              <SelectTrigger className="min-h-10 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={KEEP}>{tcat("keep")}</SelectItem>
+                {programsWithFields.map(([id, name]) => (
+                  <SelectItem key={id} value={id}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {catProgram !== KEEP ? (
+              <>
+                <ProgramFieldsPicker fields={catFields} value={catValues} onChange={setCatValues} />
+                <p className="text-xs text-muted-foreground">{tcat("bulkHint")}</p>
+              </>
+            ) : null}
+          </section>
+        ) : null}
 
         <label className="flex items-center gap-2 text-sm font-semibold">
           <Switch checked={changePlace} onCheckedChange={setChangePlace} /> {t("changePlace")}
@@ -150,7 +201,7 @@ function Body({ ids, onOpenChange, onDone }: { ids: string[]; onOpenChange: (ope
               </SelectTrigger>
               <SelectContent>
                 {keepItem}
-                {ACTIVE_ACTIVITY_TYPES.map((a) => (
+                {activeTypes.map((a) => (
                   <SelectItem key={a.id} value={a.id}>
                     {locale === "hi" ? a.labelHi : a.label}
                   </SelectItem>

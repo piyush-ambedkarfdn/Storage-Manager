@@ -6,7 +6,7 @@ import { TREE_LEVELS, type FolderKey, type GalleryFilters } from "@/types/galler
  * Gallery filters <-> URL query string (so a view can be bookmarked or shared), and the
  * PostgREST conditions for them. Used by the browser (URL) and the server (queries).
  *   f = folder key (repeat), a = activity id (repeat), t = theme id (repeat),
- *   from, to (YYYY-MM-DD), consent, story=1|0, by = uploader id, unused=1
+ *   from, to (YYYY-MM-DD), consent, story=1|0, by = uploader id, unused=1, c = category option id (repeat)
  */
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -31,6 +31,7 @@ export function parseFilters(params: URLSearchParams): GalleryFilters {
     hasStory: story === "1" ? true : story === "0" ? false : undefined,
     uploader: UUID.test(params.get("by") ?? "") ? params.get("by")! : undefined,
     unused: params.get("unused") === "1" || undefined,
+    categories: [...new Set(params.getAll("c").filter((c) => UUID.test(c)))].slice(0, 30),
   };
 }
 
@@ -45,6 +46,7 @@ export function filtersToParams(f: GalleryFilters, opts: { withFolders?: boolean
   if (f.hasStory !== undefined) p.set("story", f.hasStory ? "1" : "0");
   if (f.uploader) p.set("by", f.uploader);
   if (f.unused) p.set("unused", "1");
+  f.categories.forEach((c) => p.append("c", c));
   return p;
 }
 
@@ -94,5 +96,6 @@ export function applyGalleryFilters<Q extends Filterable<Q>>(query: Q, f: Galler
   if (f.consent) q = q.eq("consent", f.consent);
   if (f.hasStory !== undefined) q = q.eq("has_story", f.hasStory);
   if (f.uploader) q = q.eq("uploaded_by", f.uploader);
+  if (f.categories.length) q = q.overlaps("category_option_ids", f.categories);
   return q;
 }

@@ -15,6 +15,8 @@ export type PhotoOverride = {
   village_name?: string | null;
   note?: string;
   has_children: boolean;
+  /** categories chosen for this photo only (fieldId → optionIds); others come from the batch */
+  field_values?: Record<string, string[]>;
 };
 
 export type QueueBatch = {

@@ -14,6 +14,10 @@ import { PlaceFields, type PlaceErrors, type PlaceState } from "@/components/upl
 import { ReportField } from "@/components/upload/ReportField";
 import { ThemePicker } from "@/components/upload/ThemePicker";
 import { UploadQueue } from "@/components/upload/UploadQueue";
+import { missingRequired, ProgramFieldsPicker } from "@/components/categories/ProgramFieldsPicker";
+import { useProgramFields } from "@/hooks/useProgramFields";
+import { categoriesMessages } from "@/lib/i18n/messages/categories";
+import type { FieldValues } from "@/types/program-fields";
 import { activityLabel } from "@/config/activity-types";
 import { useProfile } from "@/hooks/useProfile";
 import { useUploadQueue } from "@/hooks/useUploadQueue";
@@ -43,6 +47,10 @@ export function BatchForm() {
   const [step, setStep] = useState<Step>(1);
 
   const [place, setPlace] = useState<PlaceState>({ program_id: null, district_id: null, block: null, panchayat: null, village: null });
+  const tc = useT(categoriesMessages);
+  const { fields: programFields } = useProgramFields(place.program_id);
+  const [fieldValues, setFieldValues] = useState<FieldValues>({});
+  const [fieldErrors, setFieldErrors] = useState<string[]>([]);
   const [activity, setActivity] = useState("");
   const [date, setDate] = useState(today);
   const [dateTouched, setDateTouched] = useState(false);
@@ -71,8 +79,16 @@ export function BatchForm() {
       theme_ids: themes,
       consent,
       beneficiary_count: people.trim() ? Number(people) : null,
+      // only categories of the chosen program
+      field_values: Object.fromEntries(programFields.map((f) => [f.id, fieldValues[f.id] ?? []])),
     };
+    const missing = missingRequired(programFields, fieldValues);
+    setFieldErrors(missing.map((f) => f.id));
     const parsed = batchDetailsSchema.safeParse(candidate);
+    if (parsed.success && missing.length) {
+      toast.error(tc("mustChoose", { name: missing.map((f) => f.label).join(", ") }));
+      return null;
+    }
     if (parsed.success) {
       setErrors({});
       return parsed.data;
@@ -157,7 +173,23 @@ export function BatchForm() {
             if (details()) setStep(2);
           }}
         >
-          <PlaceFields value={place} onChange={setPlace} errors={placeErrors} />
+          <PlaceFields
+            value={place}
+            onChange={(next) => {
+              if (next.program_id !== place.program_id) {
+                setFieldValues({}); // categories belong to a program
+                setFieldErrors([]);
+              }
+              setPlace(next);
+            }}
+            errors={placeErrors}
+          />
+          {programFields.length ? (
+            <section className="flex flex-col gap-2 rounded-lg border p-3">
+              <ProgramFieldsPicker fields={programFields} value={fieldValues} onChange={setFieldValues} errorFieldIds={fieldErrors} />
+              <p className="text-xs text-muted-foreground">{tc("forAllPhotos")}</p>
+            </section>
+          ) : null}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="event-date">{t("date")}</Label>
@@ -216,6 +248,8 @@ export function BatchForm() {
           <PhotoOverrideSheet
             photo={editingPhoto}
             panchayatId={place.panchayat?.id ?? null}
+            programFields={programFields}
+            batchValues={fieldValues}
             blockId={place.block?.id ?? null}
             onSave={(key, override) => setPhotos((p) => p.map((x) => (x.key === key ? { ...x, override } : x)))}
             onClose={() => setEditing(null)}

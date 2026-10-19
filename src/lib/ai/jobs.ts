@@ -5,6 +5,7 @@ import { generateJson } from "@/lib/gemini";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getProvider } from "@/lib/storage";
 import { activityLabel } from "@/config/activity-types";
+import { loadActivityTypes } from "@/lib/activity-types-server";
 import { staffNames } from "@/lib/ai/org-context";
 import { system, TASKS, themesBlock } from "@/lib/ai/prompts";
 import { reportText, themeCodesToIds, themeList } from "@/lib/ai/report-context";
@@ -23,6 +24,7 @@ type Named = { name: string | null } | null;
 
 /** ONE Flash-Lite call per report: summary, problems, themes, improved English (and Hindi when asked). */
 export async function analyseReport(reportId: string, opts: { hindi?: boolean; style?: "shorter" | "formal"; force?: boolean } = {}) {
+  await loadActivityTypes();
   const admin = createAdminClient();
   const { data: r } = await admin
     .from("field_reports")
@@ -67,6 +69,7 @@ export async function analyseReport(reportId: string, opts: { hindi?: boolean; s
 
 /** Describe photos with a small thumbnail, only when consent is "yes" and there are no children. */
 export async function describePhotos(photoIds: string[]): Promise<{ described: number; skipped: number; failed: number }> {
+  await loadActivityTypes();
   const admin = createAdminClient();
   const { data } = await admin
     .from("photos")

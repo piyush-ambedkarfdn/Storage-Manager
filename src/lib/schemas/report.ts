@@ -23,11 +23,13 @@ export const batchDetailsSchema = z.object({
   theme_ids: z.array(z.uuid()).min(1, "Pick at least one problem theme.").max(3, "Pick at most three themes."),
   consent: z.enum(["yes", "no", "unknown"]),
   beneficiary_count: z.number().int().min(0).max(1_000_000).nullable().optional(),
+  /** program categories for every photo of the batch: fieldId → optionIds */
+  field_values: z.record(z.uuid(), z.array(z.uuid()).max(20)).default({}),
 });
 export type BatchDetails = z.infer<typeof batchDetailsSchema>;
 
 export const createReportSchema = batchDetailsSchema
-  .omit({ taken_by: true, consent: true })
+  .omit({ taken_by: true, consent: true, field_values: true })
   .extend({ client_ref: z.uuid() });
 
 export const reportListQuery = z.object({

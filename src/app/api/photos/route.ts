@@ -5,6 +5,7 @@ import { toApiError } from "@/lib/options";
 import { createPhotoSchema, photoListQuery } from "@/lib/schemas/photo";
 import { getProvider, toPhotoDto } from "@/lib/storage";
 import { verify } from "@/lib/storage/secrets";
+import { checkFieldValues, getProgramFields, setPhotoCategories } from "@/lib/program-fields";
 import { PHOTO_COLUMNS } from "@/types/photo";
 
 /**
@@ -28,6 +29,11 @@ export const POST = handle(async (req) => {
     .eq("uploaded_by", profile.id)
     .maybeSingle();
   if (!report) throw new ApiError(404, "The report for this photo was not found.");
+
+  // program categories: checked before anything is saved. "Required" is enforced by the upload form, not here,
+  // so photos already waiting in a phone queue still upload after an admin adds a required category.
+  const fields = report.program_id ? await getProgramFields(supabase, report.program_id as string) : [];
+  const categoryRows = checkFieldValues(fields, input.field_values, { requireRequired: false });
 
   let sizeBytes = input.size_bytes;
   if (input.provider === "r2") {
@@ -68,6 +74,14 @@ export const POST = handle(async (req) => {
       return { duplicate: true };
     }
     throw toApiError(error);
+  }
+  if (categoryRows.length) {
+    try {
+      await setPhotoCategories(supabase, data.id as string, categoryRows);
+    } catch (err) {
+      // the photo is safe; an admin can set the categories on the photo page
+      console.error("[photos] categories not saved", data.id, err);
+    }
   }
   await logActivity({
     action: "upload",

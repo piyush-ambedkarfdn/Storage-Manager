@@ -145,6 +145,7 @@ export async function uploadItem(
     has_children: o.has_children,
     consent: batch.details.consent,
     taken_by: batch.details.taken_by || null,
+    field_values: { ...(batch.details.field_values ?? {}), ...(o.field_values ?? {}) },
   });
   return res.duplicate ? { status: "duplicate", photoId: null } : { status: "done", photoId: res.photo?.id ?? null };
 }

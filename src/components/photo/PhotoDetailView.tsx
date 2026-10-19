@@ -9,6 +9,7 @@ import { PhotoFacts } from "@/components/photo/PhotoFacts";
 import { PhotoNeighbours } from "@/components/photo/PhotoNeighbours";
 import { PhotoViewer } from "@/components/photo/PhotoViewer";
 import { ReportView } from "@/components/photo/ReportView";
+import { PhotoCategoriesCard } from "@/components/categories/PhotoCategoriesCard";
 import { usePhotoDetail } from "@/hooks/usePhotoDetail";
 import { useT } from "@/lib/i18n/provider";
 import { photoMessages } from "@/lib/i18n/messages/photo";
@@ -49,6 +50,7 @@ export function PhotoDetailView({ id, from, initial }: { id: string; from: strin
         </div>
         <div className="flex flex-col gap-4">
           <PhotoFacts detail={detail} />
+          <PhotoCategoriesCard photoId={id} programId={detail.photo.program_id} optionIds={detail.photo.category_option_ids ?? []} onChanged={refresh} />
           <ReportView report={detail.report} onChanged={refresh} />
           {showUsage ? (
             <section className="rounded-lg border bg-card p-4">

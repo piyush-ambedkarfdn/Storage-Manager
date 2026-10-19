@@ -2,6 +2,7 @@ import "server-only";
 import { ApiError } from "@/lib/api";
 import type { Session } from "@/lib/auth";
 import { activityLabel } from "@/config/activity-types";
+import { loadActivityTypes } from "@/lib/activity-types-server";
 import { applyGalleryFilters, parseFilters } from "@/lib/gallery/filters";
 import { getProvider } from "@/lib/storage";
 import { csvCell, fileNameFor, folderFor, uniquePaths, type PathValues } from "@/lib/download/paths";
@@ -49,6 +50,7 @@ export async function buildManifest(
   levels: DownloadLevel[],
   template: string,
 ): Promise<DownloadManifest> {
+  await loadActivityTypes();
   const filters = parseFilters(new URLSearchParams(input.query ?? ""));
   const themed = !input.photoIds && filters.themes.length > 0;
   let q = session.supabase

@@ -8,7 +8,10 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Switch } from "@/components/ui/switch";
 import { BlobThumb, type DraftPhoto } from "@/components/upload/Dropzone";
 import { NameCombobox, type PlaceValue } from "@/components/upload/NameCombobox";
-import { useT } from "@/lib/i18n/provider";
+import { ProgramFieldsPicker } from "@/components/categories/ProgramFieldsPicker";
+import { categoriesMessages } from "@/lib/i18n/messages/categories";
+import type { FieldValues, ProgramField } from "@/types/program-fields";
+import { useLocale, useT } from "@/lib/i18n/provider";
 import { uploadMessages } from "@/lib/i18n/messages/upload";
 import type { PhotoOverride } from "@/lib/upload/queue-db";
 
@@ -17,19 +20,25 @@ export function PhotoOverrideSheet({
   photo,
   panchayatId,
   blockId,
+  programFields = [],
+  batchValues = {},
   onSave,
   onClose,
 }: {
   photo: DraftPhoto | null;
   panchayatId: string | null;
   blockId: string | null;
+  programFields?: ProgramField[];
+  batchValues?: FieldValues;
   onSave: (key: string, override: PhotoOverride) => void;
   onClose: () => void;
 }) {
   return (
     <Sheet open={photo !== null} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="bottom" className="max-h-[90dvh] overflow-y-auto">
-        {photo ? <Body key={photo.key} photo={photo} panchayatId={panchayatId} blockId={blockId} onSave={onSave} onClose={onClose} /> : null}
+        {photo ? (
+          <Body key={photo.key} photo={photo} panchayatId={panchayatId} blockId={blockId} programFields={programFields} batchValues={batchValues} onSave={onSave} onClose={onClose} />
+        ) : null}
       </SheetContent>
     </Sheet>
   );
@@ -39,12 +48,16 @@ function Body({
   photo,
   panchayatId,
   blockId,
+  programFields,
+  batchValues,
   onSave,
   onClose,
 }: {
   photo: DraftPhoto;
   panchayatId: string | null;
   blockId: string | null;
+  programFields: ProgramField[];
+  batchValues: FieldValues;
   onSave: (key: string, override: PhotoOverride) => void;
   onClose: () => void;
 }) {
@@ -53,6 +66,14 @@ function Body({
   const [village, setVillage] = useState<PlaceValue | null>(o.village_id ? { id: o.village_id, name: o.village_name ?? "" } : null);
   const [note, setNote] = useState(o.note ?? "");
   const [children, setChildren] = useState(o.has_children);
+  const tc = useT(categoriesMessages);
+  const locale = useLocale();
+  // only fields this photo changes are stored; the rest follow the batch
+  const [ownValues, setOwnValues] = useState<FieldValues>(o.field_values ?? {});
+  const batchLabel = (f: ProgramField) => {
+    const names = f.options.filter((x) => (batchValues[f.id] ?? []).includes(x.id)).map((x) => (locale === "hi" && x.value_hi ? x.value_hi : x.value));
+    return names.length ? names.join(", ") : null;
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pb-4">
@@ -76,6 +97,12 @@ function Body({
         <Label htmlFor="ov-note">{t("overrideNote")}</Label>
         <Input id="ov-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} className="min-h-11" />
       </div>
+      {programFields.length ? (
+        <section className="flex flex-col gap-2 rounded-md border p-3">
+          <h3 className="text-sm font-semibold">{tc("thisPhoto")}</h3>
+          <ProgramFieldsPicker fields={programFields} value={ownValues} onChange={setOwnValues} inheritLabel={batchLabel} />
+        </section>
+      ) : null}
       <label className="flex items-start gap-3 rounded-md border p-3">
         <Switch checked={children} onCheckedChange={setChildren} className="mt-0.5" />
         <span>
@@ -94,6 +121,7 @@ function Body({
               block_id: village ? blockId : null,
               note,
               has_children: children,
+              field_values: Object.fromEntries(Object.entries(ownValues).filter(([, v]) => v.length)),
             });
             onClose();
           }}

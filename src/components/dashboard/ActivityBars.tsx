@@ -1,6 +1,6 @@
 "use client";
 
-import { ACTIVITY_TYPES, type ActivityType } from "@/config/activity-types";
+import { useActivityTypes } from "@/components/layout/ActivityTypesProvider";
 import { Bars } from "@/components/dashboard/PlatformBars";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { dashboardMessages } from "@/lib/i18n/messages/dashboard";
@@ -8,7 +8,8 @@ import { dashboardMessages } from "@/lib/i18n/messages/dashboard";
 export function ActivityBars({ counts }: { counts: Record<string, number> }) {
   const t = useT(dashboardMessages);
   const locale = useLocale();
-  const rows = (ACTIVITY_TYPES as readonly ActivityType[])
+  const { all } = useActivityTypes();
+  const rows = all
     .filter((a) => !a.retired || (counts[a.id] ?? 0) > 0)
     .map((a) => ({ label: locale === "hi" ? a.labelHi : a.label, value: counts[a.id] ?? 0, color: a.color }));
   return (

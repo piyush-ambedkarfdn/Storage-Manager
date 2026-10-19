@@ -4,8 +4,15 @@ import { DOWNLOAD_LEVELS } from "@/types/gallery";
 
 const ids = z.array(z.uuid()).min(1).max(2000);
 
+/** Program categories for many photos: applied only to photos of that program (others are skipped). */
+export const bulkCategoriesSchema = z.object({
+  program_id: z.uuid(),
+  values: z.record(z.uuid(), z.array(z.uuid()).max(20)),
+});
+
 export const bulkEditSchema = z.object({
   ids,
+  categories: bulkCategoriesSchema.optional(),
   set: z
     .object({
       program_id: z.uuid().optional(),
@@ -19,8 +26,9 @@ export const bulkEditSchema = z.object({
       has_children: z.boolean().optional(),
     })
     .refine((v) => Object.keys(v).length > 0, "Choose at least one thing to change.")
-    .refine((v) => !v.village_id || (v.panchayat_id && v.block_id && v.district_id), "A new village needs its district, block and panchayat."),
-});
+    .refine((v) => !v.village_id || (v.panchayat_id && v.block_id && v.district_id), "A new village needs its district, block and panchayat.")
+    .optional(),
+}).refine((v) => v.set || v.categories, "Choose at least one thing to change.");
 
 export const downloadManifestSchema = z.object({
   /** either explicit photo ids or the gallery's current query string */

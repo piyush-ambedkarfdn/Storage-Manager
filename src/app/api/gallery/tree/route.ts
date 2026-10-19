@@ -7,7 +7,7 @@ import { toApiError } from "@/lib/options";
 
 /**
  * GET ?a=…&t=…&from&to&consent&story&by&unused (admin): the explorer tree with photo counts for the
- * other filters. Phase 6 version: also honours "not used in calendar yet".
+ * other filters. Honours "not used in calendar yet" and program categories (migration 0009).
  */
 export const GET = handle(async (req) => {
   const { supabase } = await assertAdmin();
@@ -21,6 +21,7 @@ export const GET = handle(async (req) => {
     p_themes: f.themes.length ? f.themes : null,
     p_uploader: f.uploader ?? null,
     p_unused_only: !!f.unused && isEnabled("calendar"),
+    p_categories: f.categories.length ? f.categories : null,
   });
   if (error) throw toApiError(error);
   const rows = (data ?? []) as FolderCountRow[];

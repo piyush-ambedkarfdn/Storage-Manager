@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { activityLabel } from "@/config/activity-types";
+import { loadActivityTypes } from "@/lib/activity-types-server";
 import { redactReport } from "@/lib/ai/redact";
 import { staffNames } from "@/lib/ai/org-context";
 import { REPORT_PART_KEYS, type ReportParts } from "@/types/report";
@@ -63,7 +64,7 @@ type ReportRow = {
 };
 
 async function shape(rows: ReportRow[]): Promise<ReportForPrompt[]> {
-  const [names, themes] = await Promise.all([staffNames(), themeList()]);
+  const [names, themes] = await Promise.all([staffNames(), themeList(), loadActivityTypes()]);
   return rows.map((r, i) => ({
     code: `R${i + 1}`,
     id: r.id,

@@ -29,10 +29,12 @@ export type PhotoDto = {
   exif_taken_at: string | null;
   ai_description: string | null;
   ai_tags: string[] | null;
+  /** chosen program categories (option ids); labels come from /api/program-fields */
+  category_option_ids: string[];
   created_at: string;
   thumbUrl: string;
 };
 
 /** Columns read for PhotoDto (storage keys are read too but never sent to the browser). */
 export const PHOTO_COLUMNS =
-  "id, report_id, uploaded_by, taken_by, program_id, district_id, block_id, panchayat_id, village_id, activity_type, event_date, consent, has_children, note, storage_provider, storage_key, thumb_key, width, height, size_bytes, status, exif_taken_at, ai_description, ai_tags, created_at";
+  "id, report_id, uploaded_by, taken_by, program_id, district_id, block_id, panchayat_id, village_id, activity_type, event_date, consent, has_children, note, storage_provider, storage_key, thumb_key, width, height, size_bytes, status, exif_taken_at, ai_description, ai_tags, category_option_ids, created_at";

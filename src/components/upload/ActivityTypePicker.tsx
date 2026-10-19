@@ -1,19 +1,20 @@
 "use client";
 
-import { ACTIVE_ACTIVITY_TYPES } from "@/config/activity-types";
+import { useActivityTypes } from "@/components/layout/ActivityTypesProvider";
 import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { uploadMessages } from "@/lib/i18n/messages/upload";
 
-/** Coloured activity chips from src/config/activity-types.ts (stores the id, never the label). */
+/** Coloured activity chips (admin-managed in Settings > Lists; stores the id, never the label). */
 export function ActivityTypePicker({ value, onChange, error }: { value: string; onChange: (id: string) => void; error?: string }) {
   const t = useT(uploadMessages);
   const locale = useLocale();
+  const { active } = useActivityTypes();
   return (
     <fieldset aria-invalid={!!error || undefined} aria-describedby={error ? "err-activity" : undefined}>
       <legend className="mb-1.5 text-sm font-semibold">{t("activity")}</legend>
       <div className="flex flex-wrap gap-2">
-        {ACTIVE_ACTIVITY_TYPES.map((a) => {
+        {active.map((a) => {
           const on = value === a.id;
           return (
             <button

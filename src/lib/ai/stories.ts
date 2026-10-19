@@ -8,6 +8,7 @@ import { system, themesBlock } from "@/lib/ai/prompts";
 import { loadRecentReports, reportsBlock, reportText, themeCodesToIds, themeList, type ReportForPrompt } from "@/lib/ai/report-context";
 import { reportsByIds } from "@/lib/stories/queries";
 import { activityLabel } from "@/config/activity-types";
+import { loadActivityTypes } from "@/lib/activity-types-server";
 import { redactReport } from "@/lib/ai/redact";
 import { staffNames } from "@/lib/ai/org-context";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -99,7 +100,7 @@ async function storyReports(session: Session, story: Story): Promise<ReportForPr
     ids = [...new Set(((data ?? []) as unknown as { photo: { report_id: string | null } | null }[]).map((d) => d.photo?.report_id).filter((x): x is string => !!x))];
   }
   if (!ids.length) throw new ApiError(409, "Link at least one field report (or add photos that have reports) before asking AI to write.");
-  const [rows, names, themes] = await Promise.all([reportsByIds(session, ids), staffNames(), themeList()]);
+  const [rows, names, themes] = await Promise.all([reportsByIds(session, ids), staffNames(), themeList(), loadActivityTypes()]);
   return rows.map((r, i) => {
     const accepted = r.ai_review_status === "accepted" && r.ai_report_en;
     return {

@@ -29,9 +29,11 @@ export type GalleryFilters = {
   uploader?: string;
   /** not used in any calendar post yet (phase 6) */
   unused?: boolean;
+  /** program category option ids (any of them) */
+  categories: string[];
 };
 
-export const EMPTY_FILTERS: GalleryFilters = { folders: [], activity: [], themes: [] };
+export const EMPTY_FILTERS: GalleryFilters = { folders: [], activity: [], themes: [], categories: [] };
 
 export type GalleryPhoto = PhotoDto & {
   program_name: string | null;

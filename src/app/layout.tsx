@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Mukta, Geist } from "next/font/google";
+import { Mukta } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { QueryProvider } from "@/components/layout/QueryProvider";
@@ -7,11 +7,9 @@ import { RegisterSW } from "@/components/layout/RegisterSW";
 import { I18nProvider } from "@/lib/i18n/provider";
 import { getLocale } from "@/lib/i18n/server";
 import { APP } from "@/config/app";
+import { ActivityTypesProvider } from "@/components/layout/ActivityTypesProvider";
+import { loadActivityTypes } from "@/lib/activity-types-server";
 import "./globals.css";
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-
 
 // One family for Latin and Devanagari.
 const mukta = Mukta({
@@ -38,17 +36,19 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const locale = await getLocale();
-  return (
-    <html lang={locale} className={cn("font-sans", geist.variable)} suppressHydrationWarning>
-      <body className="min-h-dvh font-sans">
+  const [locale, activityTypes] = await Promise.all([getLocale(), loadActivityTypes()]);
+    return (
+    <html lang={locale} className={mukta.variable} suppressHydrationWarning>
+      <body className={`min-h-dvh ${mukta.className}`}>
         <ThemeProvider>
           <I18nProvider locale={locale}>
-            <QueryProvider>
-              {children}
-              <Toaster richColors closeButton />
-              <RegisterSW />
-            </QueryProvider>
+            <ActivityTypesProvider types={activityTypes}>
+              <QueryProvider>
+                {children}
+                <Toaster richColors closeButton />
+                <RegisterSW />
+              </QueryProvider>
+            </ActivityTypesProvider>
           </I18nProvider>
         </ThemeProvider>
       </body>
