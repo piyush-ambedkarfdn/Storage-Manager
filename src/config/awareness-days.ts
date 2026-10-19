@@ -1,0 +1,63 @@
+import type { AwarenessDay } from "@/types/days";
+
+/**
+ * Built-in national and international days with a fixed date (generated from the skill's
+ * assets/awareness-days.json, version 2026-10). Fixed-date days only. Check each one against the official source before the first post of the year. Festivals and observances whose date moves every year are handled by the AI (with web search) or added as custom days by the admin.
+ * Admins add local festivals, the organisation's own days and moving dates as custom days,
+ * and can hide any built-in day. Edit this file to change the built-in list.
+ */
+export const AWARENESS_DAYS_VERSION = "2026-10";
+
+export const AWARENESS_DAYS: readonly AwarenessDay[] = [
+  { id: "savitribai-phule-jayanti", month: 1, day: 3, name: "Savitribai Phule Jayanti", nameHi: "सावित्रीबाई फुले जयंती", scope: "national", tags: ["education", "women", "girls", "social-justice"] },
+  { id: "national-youth-day", month: 1, day: 12, name: "National Youth Day", nameHi: "राष्ट्रीय युवा दिवस", scope: "national", tags: ["youth", "education"] },
+  { id: "national-girl-child-day", month: 1, day: 24, name: "National Girl Child Day", nameHi: "राष्ट्रीय बालिका दिवस", scope: "national", tags: ["girls", "education", "rights"] },
+  { id: "national-voters-day", month: 1, day: 25, name: "National Voters' Day", nameHi: "राष्ट्रीय मतदाता दिवस", scope: "national", tags: ["democracy", "civic", "constitution"] },
+  { id: "republic-day", month: 1, day: 26, name: "Republic Day", nameHi: "गणतंत्र दिवस", scope: "national", tags: ["constitution", "civic", "democracy"] },
+  { id: "martyrs-day", month: 1, day: 30, name: "Martyrs' Day (Shaheed Diwas)", nameHi: "शहीद दिवस", scope: "national", tags: ["civic", "peace"] },
+  { id: "world-day-social-justice", month: 2, day: 20, name: "World Day of Social Justice", nameHi: "सामाजिक न्याय का विश्व दिवस", scope: "international", tags: ["social-justice", "rights", "livelihood"] },
+  { id: "mother-language-day", month: 2, day: 21, name: "International Mother Language Day", nameHi: "अंतरराष्ट्रीय मातृभाषा दिवस", scope: "international", tags: ["education", "tribal"] },
+  { id: "womens-day", month: 3, day: 8, name: "International Women's Day", nameHi: "अंतरराष्ट्रीय महिला दिवस", scope: "international", tags: ["women", "rights", "livelihood"] },
+  { id: "consumer-rights-day", month: 3, day: 15, name: "World Consumer Rights Day", nameHi: "विश्व उपभोक्ता अधिकार दिवस", scope: "international", tags: ["rights", "livelihood"] },
+  { id: "racial-discrimination-day", month: 3, day: 21, name: "International Day for the Elimination of Racial Discrimination", nameHi: "नस्लीय भेदभाव उन्मूलन अंतरराष्ट्रीय दिवस", scope: "international", tags: ["anti-discrimination", "rights", "social-justice"] },
+  { id: "world-water-day", month: 3, day: 22, name: "World Water Day", nameHi: "विश्व जल दिवस", scope: "international", tags: ["water", "health", "environment"] },
+  { id: "world-health-day", month: 4, day: 7, name: "World Health Day", nameHi: "विश्व स्वास्थ्य दिवस", scope: "international", tags: ["health"] },
+  { id: "ambedkar-jayanti", month: 4, day: 14, name: "Ambedkar Jayanti", nameHi: "अंबेडकर जयंती", scope: "national", tags: ["constitution", "social-justice", "rights", "education", "anti-discrimination"] },
+  { id: "earth-day", month: 4, day: 22, name: "International Mother Earth Day", nameHi: "अंतरराष्ट्रीय पृथ्वी दिवस", scope: "international", tags: ["environment", "climate"] },
+  { id: "panchayati-raj-day", month: 4, day: 24, name: "National Panchayati Raj Day", nameHi: "राष्ट्रीय पंचायती राज दिवस", scope: "national", tags: ["panchayat", "civic", "democracy", "rural"] },
+  { id: "labour-day", month: 5, day: 1, name: "International Workers' Day", nameHi: "अंतरराष्ट्रीय श्रमिक दिवस", scope: "international", tags: ["labour", "livelihood", "rights"] },
+  { id: "families-day", month: 5, day: 15, name: "International Day of Families", nameHi: "अंतरराष्ट्रीय परिवार दिवस", scope: "international", tags: ["children", "women", "rural"] },
+  { id: "world-environment-day", month: 6, day: 5, name: "World Environment Day", nameHi: "विश्व पर्यावरण दिवस", scope: "international", tags: ["environment", "climate", "water"] },
+  { id: "child-labour-day", month: 6, day: 12, name: "World Day Against Child Labour", nameHi: "बाल श्रम विरोधी विश्व दिवस", scope: "international", tags: ["children", "education", "rights", "labour"] },
+  { id: "world-population-day", month: 7, day: 11, name: "World Population Day", nameHi: "विश्व जनसंख्या दिवस", scope: "international", tags: ["health", "women", "rural"] },
+  { id: "youth-skills-day", month: 7, day: 15, name: "World Youth Skills Day", nameHi: "विश्व युवा कौशल दिवस", scope: "international", tags: ["youth", "livelihood", "education"] },
+  { id: "indigenous-peoples-day", month: 8, day: 9, name: "International Day of the World's Indigenous Peoples", nameHi: "विश्व आदिवासी दिवस", scope: "international", tags: ["tribal", "rights", "social-justice"] },
+  { id: "international-youth-day", month: 8, day: 12, name: "International Youth Day", nameHi: "अंतरराष्ट्रीय युवा दिवस", scope: "international", tags: ["youth", "education"] },
+  { id: "independence-day", month: 8, day: 15, name: "Independence Day", nameHi: "स्वतंत्रता दिवस", scope: "national", tags: ["constitution", "civic", "democracy"] },
+  { id: "teachers-day", month: 9, day: 5, name: "Teachers' Day", nameHi: "शिक्षक दिवस", scope: "national", tags: ["education"] },
+  { id: "literacy-day", month: 9, day: 8, name: "International Literacy Day", nameHi: "अंतरराष्ट्रीय साक्षरता दिवस", scope: "international", tags: ["education", "women", "rural"] },
+  { id: "democracy-day", month: 9, day: 15, name: "International Day of Democracy", nameHi: "अंतरराष्ट्रीय लोकतंत्र दिवस", scope: "international", tags: ["democracy", "civic", "constitution"] },
+  { id: "peace-day", month: 9, day: 21, name: "International Day of Peace", nameHi: "अंतरराष्ट्रीय शांति दिवस", scope: "international", tags: ["peace", "anti-discrimination"] },
+  { id: "gandhi-jayanti", month: 10, day: 2, name: "Gandhi Jayanti / International Day of Non-Violence", nameHi: "गांधी जयंती", scope: "national", tags: ["peace", "civic"] },
+  { id: "world-teachers-day", month: 10, day: 5, name: "World Teachers' Day", nameHi: "विश्व शिक्षक दिवस", scope: "international", tags: ["education"] },
+  { id: "mental-health-day", month: 10, day: 10, name: "World Mental Health Day", nameHi: "विश्व मानसिक स्वास्थ्य दिवस", scope: "international", tags: ["health"] },
+  { id: "girl-child-day", month: 10, day: 11, name: "International Day of the Girl Child", nameHi: "अंतरराष्ट्रीय बालिका दिवस", scope: "international", tags: ["girls", "education", "rights"] },
+  { id: "disaster-reduction-day", month: 10, day: 13, name: "International Day for Disaster Risk Reduction", nameHi: "आपदा जोखिम न्यूनीकरण अंतरराष्ट्रीय दिवस", scope: "international", tags: ["climate", "rural"] },
+  { id: "rural-women-day", month: 10, day: 15, name: "International Day of Rural Women", nameHi: "अंतरराष्ट्रीय ग्रामीण महिला दिवस", scope: "international", tags: ["women", "rural", "livelihood"] },
+  { id: "world-food-day", month: 10, day: 16, name: "World Food Day", nameHi: "विश्व खाद्य दिवस", scope: "international", tags: ["food", "livelihood", "rural"] },
+  { id: "poverty-eradication-day", month: 10, day: 17, name: "International Day for the Eradication of Poverty", nameHi: "गरीबी उन्मूलन अंतरराष्ट्रीय दिवस", scope: "international", tags: ["poverty", "livelihood", "rights"] },
+  { id: "national-unity-day", month: 10, day: 31, name: "National Unity Day", nameHi: "राष्ट्रीय एकता दिवस", scope: "national", tags: ["civic", "peace"] },
+  { id: "childrens-day", month: 11, day: 14, name: "Children's Day", nameHi: "बाल दिवस", scope: "national", tags: ["children", "education"] },
+  { id: "jharkhand-foundation-day", month: 11, day: 15, name: "Jharkhand Foundation Day", nameHi: "झारखंड स्थापना दिवस", scope: "national", tags: ["tribal", "rural", "civic"] },
+  { id: "janjatiya-gaurav-divas", month: 11, day: 15, name: "Janjatiya Gaurav Divas (Birsa Munda Jayanti)", nameHi: "जनजातीय गौरव दिवस (बिरसा मुंडा जयंती)", scope: "national", tags: ["tribal", "rights", "social-justice"] },
+  { id: "world-toilet-day", month: 11, day: 19, name: "World Toilet Day", nameHi: "विश्व शौचालय दिवस", scope: "international", tags: ["water", "health", "rural"] },
+  { id: "universal-childrens-day", month: 11, day: 20, name: "Universal Children's Day", nameHi: "विश्व बाल दिवस", scope: "international", tags: ["children", "education", "rights"] },
+  { id: "violence-against-women-day", month: 11, day: 25, name: "International Day for the Elimination of Violence against Women", nameHi: "महिलाओं के विरुद्ध हिंसा उन्मूलन अंतरराष्ट्रीय दिवस", scope: "international", tags: ["women", "rights", "anti-discrimination"] },
+  { id: "constitution-day", month: 11, day: 26, name: "Constitution Day (Samvidhan Divas)", nameHi: "संविधान दिवस", scope: "national", tags: ["constitution", "civic", "rights", "democracy"] },
+  { id: "disability-day", month: 12, day: 3, name: "International Day of Persons with Disabilities", nameHi: "अंतरराष्ट्रीय दिव्यांगजन दिवस", scope: "international", tags: ["disability", "rights"] },
+  { id: "mahaparinirvan-diwas", month: 12, day: 6, name: "Mahaparinirvan Diwas", nameHi: "महापरिनिर्वाण दिवस", scope: "national", tags: ["constitution", "social-justice", "rights", "anti-discrimination"] },
+  { id: "anti-corruption-day", month: 12, day: 9, name: "International Anti-Corruption Day", nameHi: "अंतरराष्ट्रीय भ्रष्टाचार विरोधी दिवस", scope: "international", tags: ["civic", "democracy"] },
+  { id: "human-rights-day", month: 12, day: 10, name: "Human Rights Day", nameHi: "मानवाधिकार दिवस", scope: "international", tags: ["rights", "constitution", "social-justice"] },
+  { id: "migrants-day", month: 12, day: 18, name: "International Migrants Day", nameHi: "अंतरराष्ट्रीय प्रवासी दिवस", scope: "international", tags: ["livelihood", "rights", "labour"] },
+  { id: "kisan-diwas", month: 12, day: 23, name: "Kisan Diwas (National Farmers' Day)", nameHi: "किसान दिवस", scope: "national", tags: ["rural", "livelihood", "food"] },
+];
