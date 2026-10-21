@@ -57,3 +57,23 @@ export async function setPhotoCategories(supabase: Supabase, photoId: string, ro
   const { error } = await supabase.from("photo_field_values").insert(rows.map((r) => ({ ...r, photo_id: photoId })));
   if (error) throw toApiError(error);
 }
+
+/**
+ * Throws a clear 409 when photos still use a category (`field_id`) or one choice (`option_id`).
+ * Purged photos never block (their choices are released when they are purged); trashed photos do,
+ * because restoring them would otherwise bring back photos with a missing label.
+ */
+export async function assertNoLivePhotos(supabase: Supabase, column: "field_id" | "option_id", id: string, what: "category" | "choice") {
+  const count = async (trashed: boolean) => {
+    let q = supabase.from("photo_field_values").select("photo_id, photos!inner(status)", { count: "exact", head: true }).eq(column, id);
+    q = trashed ? q.eq("photos.status", "trashed") : q.in("photos.status", ["active", "archived"]);
+    const { count: n, error } = await q;
+    if (error) throw toApiError(error);
+    return n ?? 0;
+  };
+  const [inUse, inTrash] = await Promise.all([count(false), count(true)]);
+  if (inUse) throw new ApiError(409, `${inUse} photo${inUse === 1 ? "" : "s"} still use this ${what}. Hide it instead of deleting.`);
+  if (inTrash) {
+    throw new ApiError(409, `${inTrash} photo${inTrash === 1 ? " is" : "s are"} in the trash with this ${what}. Delete ${inTrash === 1 ? "it" : "them"} for good in Storage > Trash first, or hide the ${what}.`);
+  }
+}

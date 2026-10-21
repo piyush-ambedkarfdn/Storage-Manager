@@ -3,6 +3,7 @@ import { ApiError, handle, parseBody } from "@/lib/api";
 import { assertAdmin } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { toApiError } from "@/lib/options";
+import { assertNoLivePhotos } from "@/lib/program-fields";
 import { updateOptionSchema } from "@/lib/schemas/program-fields";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -23,10 +24,11 @@ export const PATCH = handle<Ctx>(async (req, ctx) => {
   return { ok: true };
 });
 
-/** DELETE (admin): refused while photos use it (the database blocks it); hide it instead. */
+/** DELETE (admin): refused while photos still use it; hide it instead. Photos deleted for good do not count. */
 export const DELETE = handle<Ctx>(async (_req, ctx) => {
   const { supabase } = await assertAdmin();
   const id = await optionId(ctx);
+  await assertNoLivePhotos(supabase, "option_id", id, "choice");
   const { data, error } = await supabase.from("program_field_options").delete().eq("id", id).select("value");
   if (error) throw toApiError(error, "This choice");
   if (!data?.length) throw new ApiError(404, "Choice not found.");

@@ -3,6 +3,7 @@ import { ApiError, handle, parseBody } from "@/lib/api";
 import { assertAdmin } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { toApiError } from "@/lib/options";
+import { assertNoLivePhotos } from "@/lib/program-fields";
 import { updateFieldSchema } from "@/lib/schemas/program-fields";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -23,12 +24,14 @@ export const PATCH = handle<Ctx>(async (req, ctx) => {
   return { ok: true };
 });
 
-/** DELETE (admin): only when no photo uses it (otherwise hide it, so old photos keep their labels). */
+/**
+ * DELETE (admin): refused while photos still use it (otherwise hide it, so those photos keep their labels).
+ * Photos deleted for good (purged) no longer count; photos in the trash do, because they can be restored.
+ */
 export const DELETE = handle<Ctx>(async (_req, ctx) => {
   const { supabase } = await assertAdmin();
   const id = await fieldId(ctx);
-  const { count } = await supabase.from("photo_field_values").select("photo_id", { count: "exact", head: true }).eq("field_id", id);
-  if (count) throw new ApiError(409, `${count} photos use this category. Hide it instead of deleting.`);
+  await assertNoLivePhotos(supabase, "field_id", id, "category");
   const { data, error } = await supabase.from("program_fields").delete().eq("id", id).select("label");
   if (error) throw toApiError(error);
   if (!data?.length) throw new ApiError(404, "Category not found.");
