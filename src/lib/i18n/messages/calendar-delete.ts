@@ -1,0 +1,38 @@
+import { defineMessages } from "@/lib/i18n";
+
+export const calendarDeleteMessages = defineMessages({
+  en: {
+    selectAll: "Select all posts in this list",
+    selectRow: "Select post: {title}",
+    selected: "{n} selected",
+    clear: "Clear selection",
+    deleteSelected: "Delete selected",
+    deleteRow: "Delete post: {title}",
+    oneTitle: "Delete this post?",
+    oneBody: "“{title}” will be deleted. Its photos stay in the library.",
+    bulkTitle: "Delete {n} posts?",
+    bulkBody: "These posts will be deleted for good. Their photos stay in the library.",
+    confirmOne: "Delete post",
+    confirmBulk: "Delete {n} posts",
+    deletedOne: "Post deleted.",
+    deletedMany: "{n} posts deleted.",
+    untitled: "(no title)",
+  },
+  hi: {
+    selectAll: "इस सूची की सभी पोस्ट चुनें",
+    selectRow: "पोस्ट चुनें: {title}",
+    selected: "{n} चुनी गईं",
+    clear: "चयन हटाएँ",
+    deleteSelected: "चुनी हुई हटाएँ",
+    deleteRow: "पोस्ट हटाएँ: {title}",
+    oneTitle: "यह पोस्ट हटाएँ?",
+    oneBody: "“{title}” हटा दी जाएगी। इसकी फोटो लाइब्रेरी में बनी रहेंगी।",
+    bulkTitle: "{n} पोस्ट हटाएँ?",
+    bulkBody: "ये पोस्ट हमेशा के लिए हट जाएँगी। इनकी फोटो लाइब्रेरी में बनी रहेंगी।",
+    confirmOne: "पोस्ट हटाएँ",
+    confirmBulk: "{n} पोस्ट हटाएँ",
+    deletedOne: "पोस्ट हटाई गई।",
+    deletedMany: "{n} पोस्ट हटाई गईं।",
+    untitled: "(बिना शीर्षक)",
+  },
+});

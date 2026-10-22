@@ -1,14 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { PanelRightOpen } from "lucide-react";
+import { PanelRightOpen, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { OptionSelect } from "@/components/calendar/OptionSelect";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { requestJson } from "@/hooks/useOptions";
 import { useT } from "@/lib/i18n/provider";
 import { calendarMessages } from "@/lib/i18n/messages/calendar";
+import { calendarDeleteMessages } from "@/lib/i18n/messages/calendar-delete";
 import type { ContentItem } from "@/types/content";
 
 type Patch = (id: string, fields: Partial<ContentItem>) => Promise<void>;
@@ -56,8 +60,35 @@ function TextCell({ value, label, onSave, wide }: { value: string | null; label:
 }
 
 /** The 12-column calendar table with inline editing (click a cell). */
-export function CalendarTable({ items, patch, onOpen }: { items: ContentItem[]; patch: Patch; onOpen: (id: string) => void }) {
+export function CalendarTable({ items, patch, onOpen, onChanged }: { items: ContentItem[]; patch: Patch; onOpen: (id: string) => void; onChanged: () => void }) {
   const t = useT(calendarMessages);
+  const td_ = useT(calendarDeleteMessages);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [askOne, setAskOne] = useState<ContentItem | null>(null);
+  const [askMany, setAskMany] = useState(false);
+  // only posts still in this list count (a month change or a refresh drops the others)
+  const chosen = items.filter((i) => selected.has(i.id));
+  const allChosen = items.length > 0 && chosen.length === items.length;
+  const toggle = (id: string, on: boolean) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+
+  async function remove(ids: string[], single: boolean) {
+    try {
+      const res = single
+        ? await requestJson(`/api/content/${ids[0]}`, { method: "DELETE" }).then(() => ({ deleted: 1 }))
+        : await requestJson<{ deleted: number }>("/api/content/bulk-delete", { method: "POST", body: { ids } });
+      toast.success(single ? td_("deletedOne") : td_("deletedMany", { n: res.deleted }));
+      setSelected((prev) => new Set([...prev].filter((x) => !ids.includes(x))));
+      onChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
   const save = (id: string, fields: Partial<ContentItem>) =>
     patch(id, fields).then(
       () => toast.success(t("saved")),
@@ -69,10 +100,28 @@ export function CalendarTable({ items, patch, onOpen }: { items: ContentItem[]; 
   const td = "border-b px-2 py-1 align-middle text-sm";
   return (
     <div className="overflow-x-auto rounded-lg border bg-card">
-      <table className="w-full min-w-[1700px] border-collapse">
+      {chosen.length ? (
+        <div className="flex flex-wrap items-center gap-2 border-b bg-secondary px-3 py-2" role="status">
+          <span className="text-sm font-medium">{td_("selected", { n: chosen.length })}</span>
+          <Button variant="destructive" size="sm" className="min-h-9" onClick={() => setAskMany(true)}>
+            <Trash2 aria-hidden /> {td_("deleteSelected")}
+          </Button>
+          <Button variant="ghost" size="sm" className="min-h-9" onClick={() => setSelected(new Set())}>
+            <X aria-hidden /> {td_("clear")}
+          </Button>
+        </div>
+      ) : null}
+      <table className="w-full min-w-[1780px] border-collapse">
         <thead>
           <tr>
-            <th className={`${th} sticky left-0 z-10`}>{t("publish_date")}</th>
+            <th className={`${th} sticky left-0 z-10 w-10 min-w-10`}>
+              <Checkbox
+                aria-label={td_("selectAll")}
+                checked={allChosen ? true : chosen.length ? "indeterminate" : false}
+                onCheckedChange={(c) => setSelected(c === true ? new Set(items.map((i) => i.id)) : new Set())}
+              />
+            </th>
+            <th className={`${th} sticky left-10 z-10`}>{t("publish_date")}</th>
             <th className={th}>{t("platform")}</th>
             <th className={th}>{t("content_format")}</th>
             <th className={th}>{t("content_pillar")}</th>
@@ -91,8 +140,15 @@ export function CalendarTable({ items, patch, onOpen }: { items: ContentItem[]; 
         </thead>
         <tbody>
           {items.map((i) => (
-            <tr key={i.id} className="hover:bg-secondary/40">
-              <td className={`${td} sticky left-0 z-10 bg-card`}>
+            <tr key={i.id} className={selected.has(i.id) ? "bg-secondary/60" : "hover:bg-secondary/40"}>
+              <td className={`${td} sticky left-0 z-10 w-10 min-w-10 bg-card`}>
+                <Checkbox
+                  aria-label={td_("selectRow", { title: i.title ?? td_("untitled") })}
+                  checked={selected.has(i.id)}
+                  onCheckedChange={(c) => toggle(i.id, c === true)}
+                />
+              </td>
+              <td className={`${td} sticky left-10 z-10 bg-card`}>
                 <Input
                   type="date"
                   aria-label={`${t("publish_date")}: ${i.title ?? ""}`}
@@ -134,7 +190,7 @@ export function CalendarTable({ items, patch, onOpen }: { items: ContentItem[]; 
               <td className={td}>
                 <OptionSelect compact type="stage" allowNone={false} value={i.production_stage} onChange={(v) => v && save(i.id, { production_stage: v })} label={t("production_stage")} />
               </td>
-              <td className={td}>
+              <td className={`${td} whitespace-nowrap`}>
                 <Button variant="ghost" size="sm" className="min-h-8 gap-1" onClick={() => onOpen(i.id)} aria-label={`${t("editTitle")}: ${i.title ?? ""}`}>
                   {i.first_thumb ? (
                     // eslint-disable-next-line @next/next/no-img-element -- cached thumbnail
@@ -143,11 +199,38 @@ export function CalendarTable({ items, patch, onOpen }: { items: ContentItem[]; 
                   {i.photo_count ? <span className="text-xs text-muted-foreground">{i.photo_count}</span> : null}
                   <PanelRightOpen aria-hidden />
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 text-destructive hover:text-destructive"
+                  onClick={() => setAskOne(i)}
+                  aria-label={td_("deleteRow", { title: i.title ?? td_("untitled") })}
+                >
+                  <Trash2 aria-hidden />
+                </Button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+      <ConfirmDialog
+        open={askOne !== null}
+        onOpenChange={(o) => !o && setAskOne(null)}
+        title={td_("oneTitle")}
+        body={td_("oneBody", { title: askOne?.title ?? td_("untitled") })}
+        confirmLabel={td_("confirmOne")}
+        destructive
+        onConfirm={() => (askOne ? remove([askOne.id], true) : undefined)}
+      />
+      <ConfirmDialog
+        open={askMany}
+        onOpenChange={setAskMany}
+        title={td_("bulkTitle", { n: chosen.length })}
+        body={td_("bulkBody")}
+        confirmLabel={td_("confirmBulk", { n: chosen.length })}
+        destructive
+        onConfirm={() => remove(chosen.map((c) => c.id), false)}
+      />
     </div>
   );
 }

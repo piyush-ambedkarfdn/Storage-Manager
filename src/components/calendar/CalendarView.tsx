@@ -99,7 +99,7 @@ export function CalendarView() {
           {isLoading ? (
             <Skeleton className="h-96 w-full" />
           ) : view === "table" ? (
-            <CalendarTable items={items} patch={patch} onOpen={setPanel} />
+            <CalendarTable items={items} patch={patch} onOpen={setPanel} onChanged={refresh} />
           ) : (
             <CalendarMonthView month={month} items={items} days={days} hindi={hindi} patch={patch} onOpen={setPanel} onNew={(date) => setNewItem({ date })} />
           )}
