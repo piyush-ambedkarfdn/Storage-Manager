@@ -93,6 +93,20 @@ export const driveProvider: StorageProvider = {
     return { key: res.data.id };
   },
 
+  async putFile({ folder, fileId, fileName, body, contentType }) {
+    const { d, rootFolderId } = await api();
+    const parent = await folderId(d, rootFolderId, `${folder}/${new Date().toISOString().slice(0, 7)}`);
+    const res = await withRetry(() =>
+      d.files.create({
+        requestBody: { name: fileName, parents: [parent], appProperties: { kind: "file", file: fileId } },
+        media: { mimeType: contentType, body: Readable.from(Buffer.from(body)) },
+        fields: "id",
+      }),
+    );
+    if (!res.data.id) throw new Error("Google Drive did not return a file id.");
+    return { key: res.data.id };
+  },
+
   async head(key) {
     try {
       const { d } = await api();

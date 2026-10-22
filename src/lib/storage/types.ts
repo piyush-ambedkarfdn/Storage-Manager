@@ -11,6 +11,16 @@ export type PutInput = {
   contentType: string;
 };
 
+/** A non-photo file (for example an imported Excel sheet). `folder` is a slash path such as "imports/calendar". */
+export type PutFileInput = {
+  folder: string;
+  /** unique id used in the stored name so two files with the same name never collide */
+  fileId: string;
+  fileName: string;
+  body: Uint8Array;
+  contentType: string;
+};
+
 export type DirectUpload = {
   originalKey: string;
   thumbKey: string;
@@ -30,6 +40,8 @@ export interface StorageProvider {
   prepareDirectUpload?(input: { fileId: string; programSlug: string; contentType: string }): Promise<DirectUpload>;
   /** Server-side write (Drive uploads, and the move tool in phase 7). */
   putObject(input: PutInput): Promise<{ key: string }>;
+  /** Server-side write of a non-photo file. Returns the key (R2 object key or Drive file id). */
+  putFile(input: PutFileInput): Promise<{ key: string }>;
   /** Size of a stored file, or null if it does not exist. */
   head(key: string): Promise<{ size: number } | null>;
   getBytes(key: string): Promise<{ body: ReadableStream<Uint8Array>; contentType: string; size?: number }>;

@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Settings2, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, FileDown, FileUp, Plus, Settings2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ManageOptionsDialog } from "@/components/settings/ManageOptionsDialog";
 import { isEnabled } from "@/config/features";
+import { SAMPLE_FILE_NAME, SAMPLE_FILE_URL } from "@/lib/content/import-template";
 import { useOptions } from "@/hooks/useOptions";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/provider";
 import { calendarMessages } from "@/lib/i18n/messages/calendar";
+import { calendarImportMessages } from "@/lib/i18n/messages/calendar-import";
 
 const ALL = "__all__";
 
@@ -24,6 +27,7 @@ export function CalendarToolbar({
   onFilter,
   onNew,
   onIdeas,
+  onImport,
 }: {
   monthLabel: string;
   view: "table" | "month";
@@ -34,8 +38,10 @@ export function CalendarToolbar({
   onFilter: (f: { platform?: string; status?: string }) => void;
   onNew: () => void;
   onIdeas: () => void;
+  onImport: () => void;
 }) {
   const t = useT(calendarMessages);
+  const ti = useT(calendarImportMessages);
   const { options: platforms } = useOptions("platform");
   const { options: statuses } = useOptions("status");
   const [manage, setManage] = useState(false);
@@ -91,6 +97,24 @@ export function CalendarToolbar({
       <Button variant="outline" className="min-h-10" onClick={() => setManage(true)}>
         <Settings2 aria-hidden /> {t("manageOptions")}
       </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="min-h-10">
+            <FileUp aria-hidden /> {ti("importMenu")} <ChevronDown aria-hidden />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onImport}>
+            <FileUp aria-hidden /> {ti("importFromFile")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <a href={SAMPLE_FILE_URL} download={SAMPLE_FILE_NAME}>
+              <FileDown aria-hidden /> {ti("downloadSample")}
+            </a>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       {isEnabled("ai") ? (
         <Button variant="outline" className="min-h-10 text-primary" onClick={onIdeas}>
           <Sparkles aria-hidden /> {t("ideas")}

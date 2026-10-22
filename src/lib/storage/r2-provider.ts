@@ -86,6 +86,15 @@ export const r2Provider: StorageProvider = {
     return { key };
   },
 
+  async putFile({ folder, fileId, fileName, body, contentType }) {
+    const now = new Date();
+    const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
+    const safe = fileName.normalize("NFKD").replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, "_").slice(-80) || "file";
+    const key = `${folder}/${now.getUTCFullYear()}/${mm}/${fileId}-${safe}`;
+    await s3().send(new PutObjectCommand({ Bucket: bucket(), Key: key, Body: body, ContentType: contentType }));
+    return { key };
+  },
+
   async head(key) {
     try {
       const res = await s3().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));

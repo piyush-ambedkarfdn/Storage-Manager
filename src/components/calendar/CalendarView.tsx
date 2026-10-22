@@ -10,6 +10,7 @@ import { CalendarTable } from "@/components/calendar/CalendarTable";
 import { CalendarToolbar } from "@/components/calendar/CalendarToolbar";
 import { DaysPanel } from "@/components/calendar/DaysPanel";
 import { IdeasDialog } from "@/components/calendar/IdeasDialog";
+import { ImportDialog } from "@/components/calendar/ImportDialog";
 import { ItemPanel } from "@/components/calendar/ItemPanel";
 import { NewItemDialog, type NewItemInitial } from "@/components/calendar/NewItemDialog";
 import { useContentItems } from "@/hooks/useContentItems";
@@ -47,6 +48,7 @@ export function CalendarView() {
   const [newItem, setNewItem] = useState<NewItemInitial | null>(fromGallery ? { photoIds: galleryPhotos } : null);
   const [panel, setPanel] = useState<string | null>(null);
   const [ideas, setIdeas] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const { from, to } = monthRange(month);
   const { items, isLoading, patch, refresh } = useContentItems(from, to, filters);
@@ -90,6 +92,7 @@ export function CalendarView() {
         onFilter={setFilters}
         onNew={() => setNewItem({})}
         onIdeas={() => setIdeas(true)}
+        onImport={() => setImporting(true)}
       />
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
@@ -117,6 +120,7 @@ export function CalendarView() {
       />
       <ItemPanel itemId={panel} onClose={() => setPanel(null)} onChanged={refresh} />
       <IdeasDialog month={month} open={ideas} onOpenChange={setIdeas} onDone={refresh} />
+      <ImportDialog open={importing} onOpenChange={setImporting} onDone={refresh} onShowMonth={(m) => setUrl({ month: m })} />
     </div>
   );
 }
