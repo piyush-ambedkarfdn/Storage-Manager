@@ -3,9 +3,11 @@
 import { format } from "date-fns";
 import { ActivityChip } from "@/components/shared/ActivityChip";
 import { ColorChip } from "@/components/shared/ColorChip";
+import { StarRating } from "@/components/rating/StarRating";
 import { useOptions } from "@/hooks/useOptions";
 import { useT } from "@/lib/i18n/provider";
 import { photoMessages } from "@/lib/i18n/messages/photo";
+import { ratingMessages } from "@/lib/i18n/messages/rating";
 import type { PhotoDetail } from "@/types/photo-detail";
 
 const fmtDate = (d: string | null) => (d ? format(new Date(d), "d MMM yyyy") : null);
@@ -22,6 +24,7 @@ function Row({ label, children, wide }: { label: string; children: React.ReactNo
 /** Everything the staff member entered for this photo, exactly as entered, with who and when. */
 export function PhotoFacts({ detail }: { detail: PhotoDetail }) {
   const t = useT(photoMessages);
+  const tr = useT(ratingMessages);
   const { allOptions: themes } = useOptions("theme");
   const p = detail.photo;
   const r = detail.report;
@@ -56,6 +59,7 @@ export function PhotoFacts({ detail }: { detail: PhotoDetail }) {
         <Row label={t("consent")}>
           <span className={p.consent === "yes" ? "text-success" : "text-destructive"}>{t(`consent_${p.consent}`)}</span>
         </Row>
+        <Row label={tr("ratedBy")}>{p.rating ? <StarRating value={p.rating} /> : <span className="font-normal text-muted-foreground">{tr("notRated")}</span>}</Row>
         <Row label={t("children")}>{p.has_children ? t("yes") : t("no")}</Row>
         <Row label={t("people")}>{r?.beneficiary_count ?? notGiven}</Row>
         <Row label={t("note")} wide>

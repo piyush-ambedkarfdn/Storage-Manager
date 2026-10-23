@@ -6,7 +6,8 @@ import { TREE_LEVELS, type FolderKey, type GalleryFilters } from "@/types/galler
  * Gallery filters <-> URL query string (so a view can be bookmarked or shared), and the
  * PostgREST conditions for them. Used by the browser (URL) and the server (queries).
  *   f = folder key (repeat), a = activity id (repeat), t = theme id (repeat),
- *   from, to (YYYY-MM-DD), consent, story=1|0, by = uploader id, unused=1, c = category option id (repeat)
+ *   from, to (YYYY-MM-DD), consent, story=1|0, by = uploader id, unused=1, c = category option id (repeat),
+ *   r = rating (1-5 = that many stars or more, 0 = not rated)
  */
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -32,6 +33,7 @@ export function parseFilters(params: URLSearchParams): GalleryFilters {
     uploader: UUID.test(params.get("by") ?? "") ? params.get("by")! : undefined,
     unused: params.get("unused") === "1" || undefined,
     categories: [...new Set(params.getAll("c").filter((c) => UUID.test(c)))].slice(0, 30),
+    rating: /^[0-5]$/.test(params.get("r") ?? "") ? Number(params.get("r")) : undefined,
   };
 }
 
@@ -47,6 +49,7 @@ export function filtersToParams(f: GalleryFilters, opts: { withFolders?: boolean
   if (f.uploader) p.set("by", f.uploader);
   if (f.unused) p.set("unused", "1");
   f.categories.forEach((c) => p.append("c", c));
+  if (f.rating !== undefined) p.set("r", String(f.rating));
   return p;
 }
 
@@ -79,6 +82,7 @@ type Filterable<Q> = {
   lte(column: string, value: unknown): Q;
   or(filters: string): Q;
   overlaps(column: string, value: readonly unknown[]): Q;
+  is(column: string, value: null): Q;
 };
 
 /**
@@ -97,5 +101,7 @@ export function applyGalleryFilters<Q extends Filterable<Q>>(query: Q, f: Galler
   if (f.hasStory !== undefined) q = q.eq("has_story", f.hasStory);
   if (f.uploader) q = q.eq("uploaded_by", f.uploader);
   if (f.categories.length) q = q.overlaps("category_option_ids", f.categories);
+  if (f.rating === 0) q = q.is("rating", null);
+  else if (f.rating) q = q.gte("rating", f.rating);
   return q;
 }

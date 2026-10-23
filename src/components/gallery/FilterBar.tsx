@@ -10,14 +10,16 @@ import { requestJson } from "@/hooks/useOptions";
 import { useGalleryFilters } from "@/hooks/useGalleryFilters";
 import { useT } from "@/lib/i18n/provider";
 import { galleryMessages } from "@/lib/i18n/messages/gallery";
+import { ratingMessages } from "@/lib/i18n/messages/rating";
 import type { Consent } from "@/types/photo";
 import type { StaffMember } from "@/types/staff";
 
 const ANY = "any";
 
-/** Dates, consent, uploader, used-in-story and not-used-in-calendar filters. */
+/** Dates, consent, rating, uploader, used-in-story and not-used-in-calendar filters. */
 export function FilterBar() {
   const t = useT(galleryMessages);
+  const tr = useT(ratingMessages);
   const { filters, setFilters } = useGalleryFilters();
   const staff = useQuery({
     queryKey: ["staff"],
@@ -48,6 +50,20 @@ export function FilterBar() {
           <SelectItem value="yes">{t("consent_yes")}</SelectItem>
           <SelectItem value="no">{t("consent_no")}</SelectItem>
           <SelectItem value="unknown">{t("consent_unknown")}</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={filters.rating === undefined ? ANY : String(filters.rating)} onValueChange={(v) => setFilters({ rating: v === ANY ? undefined : Number(v) })}>
+        <SelectTrigger className="h-9 w-44" aria-label={tr("filter")}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ANY}>{tr("anyRating")}</SelectItem>
+          <SelectItem value="5">{tr("only5")}</SelectItem>
+          <SelectItem value="4">{tr("atLeast", { n: 4 })}</SelectItem>
+          <SelectItem value="3">{tr("atLeast", { n: 3 })}</SelectItem>
+          <SelectItem value="2">{tr("atLeast", { n: 2 })}</SelectItem>
+          <SelectItem value="1">{tr("atLeast", { n: 1 })}</SelectItem>
+          <SelectItem value="0">{tr("notRated")}</SelectItem>
         </SelectContent>
       </Select>
       <Select value={filters.uploader ?? ANY} onValueChange={(v) => setFilters({ uploader: v === ANY ? undefined : v })}>

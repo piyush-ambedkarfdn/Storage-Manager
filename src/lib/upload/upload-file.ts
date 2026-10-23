@@ -143,8 +143,10 @@ export async function uploadItem(
     block_id: o.village_id ? (o.block_id ?? null) : null,
     note: o.note?.trim() || null,
     has_children: o.has_children,
+    rating: o.rating ?? null,
     consent: batch.details.consent,
     taken_by: batch.details.taken_by || null,
+    // categories belong to each photo now; batches queued before this change may still carry batch-wide ones
     field_values: { ...(batch.details.field_values ?? {}), ...(o.field_values ?? {}) },
   });
   return res.duplicate ? { status: "duplicate", photoId: null } : { status: "done", photoId: res.photo?.id ?? null };

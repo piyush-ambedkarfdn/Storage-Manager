@@ -14,10 +14,10 @@ import { PlaceFields, type PlaceErrors, type PlaceState } from "@/components/upl
 import { ReportField } from "@/components/upload/ReportField";
 import { ThemePicker } from "@/components/upload/ThemePicker";
 import { UploadQueue } from "@/components/upload/UploadQueue";
-import { missingRequired, ProgramFieldsPicker } from "@/components/categories/ProgramFieldsPicker";
+import { PhotoList, photosMissingCategories } from "@/components/upload/PhotoList";
 import { useProgramFields } from "@/hooks/useProgramFields";
-import { categoriesMessages } from "@/lib/i18n/messages/categories";
-import type { FieldValues } from "@/types/program-fields";
+import { uploadPhotosMessages } from "@/lib/i18n/messages/uploadPhotos";
+import type { PhotoOverride } from "@/lib/upload/queue-db";
 import { activityLabel } from "@/config/activity-types";
 import { useProfile } from "@/hooks/useProfile";
 import { useUploadQueue } from "@/hooks/useUploadQueue";
@@ -36,7 +36,8 @@ const today = () => {
 };
 
 /**
- * The 3-step upload: 1. batch details and field report, 2. photos, 3. the queue.
+ * The 3-step upload: 1. batch details and field report (shared by every photo), 2. photos: each photo gets its own
+ * program categories and star rating, 3. the queue.
  * Mobile first: one column, large targets, Hindi beside English.
  */
 export function BatchForm() {
@@ -47,10 +48,10 @@ export function BatchForm() {
   const [step, setStep] = useState<Step>(1);
 
   const [place, setPlace] = useState<PlaceState>({ program_id: null, district_id: null, block: null, panchayat: null, village: null });
-  const tc = useT(categoriesMessages);
+  const tp = useT(uploadPhotosMessages);
   const { fields: programFields } = useProgramFields(place.program_id);
-  const [fieldValues, setFieldValues] = useState<FieldValues>({});
-  const [fieldErrors, setFieldErrors] = useState<string[]>([]);
+  /** photo key → required categories still missing, shown in red on its card */
+  const [missing, setMissing] = useState<Map<string, string[]>>(new Map());
   const [activity, setActivity] = useState("");
   const [date, setDate] = useState(today);
   const [dateTouched, setDateTouched] = useState(false);
@@ -79,16 +80,9 @@ export function BatchForm() {
       theme_ids: themes,
       consent,
       beneficiary_count: people.trim() ? Number(people) : null,
-      // only categories of the chosen program
-      field_values: Object.fromEntries(programFields.map((f) => [f.id, fieldValues[f.id] ?? []])),
+      // program categories are chosen per photo in step 2, not here
     };
-    const missing = missingRequired(programFields, fieldValues);
-    setFieldErrors(missing.map((f) => f.id));
     const parsed = batchDetailsSchema.safeParse(candidate);
-    if (parsed.success && missing.length) {
-      toast.error(tc("mustChoose", { name: missing.map((f) => f.label).join(", ") }));
-      return null;
-    }
     if (parsed.success) {
       setErrors({});
       return parsed.data;
@@ -114,9 +108,30 @@ export function BatchForm() {
     }
   }
 
+  function changePhoto(key: string, patch: Partial<PhotoOverride>) {
+    setPhotos((list) => list.map((x) => (x.key === key ? { ...x, override: { ...x.override, ...patch } } : x)));
+    if (patch.field_values) {
+      setMissing((m) => {
+        if (!m.has(key)) return m;
+        const next = new Map(m);
+        next.delete(key);
+        return next;
+      });
+    }
+  }
+
   async function startUpload() {
     const d = details();
     if (!d || !photos.length) return;
+    // every photo needs the program's required categories
+    const lacking = photosMissingCategories(photos, programFields);
+    setMissing(lacking);
+    if (lacking.size) {
+      toast.error(tp("needCategories"));
+      const first = photos.find((p) => lacking.has(p.key));
+      if (first) document.getElementById(`photo-${first.key}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     setSending(true);
     const label = [place.village?.name, activityLabel(d.activity_type, locale), d.event_date].filter(Boolean).join(" · ");
     await queue.add(d, label, photos.map((p) => ({ file: p.file, override: p.override })));
@@ -127,6 +142,7 @@ export function BatchForm() {
 
   function newBatch() {
     // keep program, place and activity; a new report starts empty
+    setMissing(new Map());
     setReport(EMPTY_REPORT);
     setThemes([]);
     setPeople("");
@@ -148,7 +164,7 @@ export function BatchForm() {
     <div className="flex flex-col gap-5">
       <div>
         <div className="text-sm text-muted-foreground">
-          {t("stepOf", { n: step })} · {step === 1 ? t("step1") : step === 2 ? t("step2") : t("step3")}
+          {t("stepOf", { n: step })} · {step === 1 ? t("step1") : step === 2 ? tp("step2") : t("step3")}
         </div>
         <div className="mt-2 h-1.5 rounded-full bg-secondary">
           <div className="h-1.5 rounded-full bg-primary transition-all" style={{ width: `${(step / 3) * 100}%` }} />
@@ -177,19 +193,14 @@ export function BatchForm() {
             value={place}
             onChange={(next) => {
               if (next.program_id !== place.program_id) {
-                setFieldValues({}); // categories belong to a program
-                setFieldErrors([]);
+                // categories belong to a program: photos already added start again without them
+                setPhotos((list) => list.map((x) => ({ ...x, override: { ...x.override, field_values: {} } })));
+                setMissing(new Map());
               }
               setPlace(next);
             }}
             errors={placeErrors}
           />
-          {programFields.length ? (
-            <section className="flex flex-col gap-2 rounded-lg border p-3">
-              <ProgramFieldsPicker fields={programFields} value={fieldValues} onChange={setFieldValues} errorFieldIds={fieldErrors} />
-              <p className="text-xs text-muted-foreground">{tc("forAllPhotos")}</p>
-            </section>
-          ) : null}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="event-date">{t("date")}</Label>
@@ -231,9 +242,12 @@ export function BatchForm() {
 
       {step === 2 ? (
         <div className="flex flex-col gap-4">
-          <Dropzone
+          <Dropzone onAdd={(f) => void addFiles(f)} />
+          <PhotoList
             photos={photos}
-            onAdd={(f) => void addFiles(f)}
+            programFields={programFields}
+            missing={missing}
+            onChange={changePhoto}
             onRemove={(key) => setPhotos((p) => p.filter((x) => x.key !== key))}
             onEdit={setEditing}
           />
@@ -248,8 +262,6 @@ export function BatchForm() {
           <PhotoOverrideSheet
             photo={editingPhoto}
             panchayatId={place.panchayat?.id ?? null}
-            programFields={programFields}
-            batchValues={fieldValues}
             blockId={place.block?.id ?? null}
             onSave={(key, override) => setPhotos((p) => p.map((x) => (x.key === key ? { ...x, override } : x)))}
             onClose={() => setEditing(null)}

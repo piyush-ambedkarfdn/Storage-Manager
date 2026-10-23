@@ -15,7 +15,9 @@ export type PhotoOverride = {
   village_name?: string | null;
   note?: string;
   has_children: boolean;
-  /** categories chosen for this photo only (fieldId → optionIds); others come from the batch */
+  /** the uploader's own 1-5 star rating (optional) */
+  rating?: number | null;
+  /** categories chosen for this photo (fieldId → optionIds). Older queued batches may still carry batch-wide ones. */
   field_values?: Record<string, string[]>;
 };
 

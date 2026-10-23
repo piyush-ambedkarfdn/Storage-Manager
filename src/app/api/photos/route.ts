@@ -55,6 +55,7 @@ export const POST = handle(async (req) => {
     event_date: report.event_date,
     consent: input.consent,
     has_children: input.has_children,
+    rating: input.rating ?? null,
     note: input.note ?? null,
     storage_provider: input.provider,
     storage_key: input.original_key,

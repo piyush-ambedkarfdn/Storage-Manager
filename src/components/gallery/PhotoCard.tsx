@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { format } from "date-fns";
 import { activityColor } from "@/config/activity-types";
+import { StarRating } from "@/components/rating/StarRating";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/provider";
 import { galleryMessages } from "@/lib/i18n/messages/gallery";
@@ -41,6 +42,11 @@ export function PhotoCard({
           {photo.consent !== "yes" ? (
             <span className="absolute top-1.5 right-1.5 rounded bg-background/90 px-1.5 text-[11px] font-bold text-destructive">
               {photo.consent === "no" ? t("noConsent") : t("unsure")}
+            </span>
+          ) : null}
+          {photo.rating ? (
+            <span className="absolute bottom-3 left-1.5 rounded bg-background/90 px-1.5 py-0.5 text-[11px]">
+              <StarRating value={photo.rating} />
             </span>
           ) : null}
           {photo.has_children ? (

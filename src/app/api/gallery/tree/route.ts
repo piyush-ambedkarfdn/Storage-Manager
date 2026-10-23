@@ -6,7 +6,7 @@ import { buildTree, type FolderCountRow } from "@/lib/gallery/tree";
 import { toApiError } from "@/lib/options";
 
 /**
- * GET ?a=…&t=…&from&to&consent&story&by&unused (admin): the explorer tree with photo counts for the
+ * GET ?a=…&t=…&from&to&consent&story&by&unused&r (admin): the explorer tree with photo counts for the
  * other filters. Honours "not used in calendar yet" and program categories (migration 0009).
  */
 export const GET = handle(async (req) => {
@@ -22,6 +22,7 @@ export const GET = handle(async (req) => {
     p_uploader: f.uploader ?? null,
     p_unused_only: !!f.unused && isEnabled("calendar"),
     p_categories: f.categories.length ? f.categories : null,
+    p_rating: f.rating ?? null,
   });
   if (error) throw toApiError(error);
   const rows = (data ?? []) as FolderCountRow[];
