@@ -31,6 +31,8 @@ export type GalleryFilters = {
   unused?: boolean;
   /** program category option ids (any of them) */
   categories: string[];
+  /** 1-5 = that many stars or more, 0 = not rated */
+  rating?: number;
 };
 
 export const EMPTY_FILTERS: GalleryFilters = { folders: [], activity: [], themes: [], categories: [] };
