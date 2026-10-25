@@ -3,9 +3,11 @@
 import { CheckCircle2, CircleAlert, Copy, Loader2, Plus, RotateCcw, Trash2, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BlobThumb } from "@/components/upload/Dropzone";
+import { MyDownloadButton } from "@/components/uploads/MyDownloadButton";
 import type { useUploadQueue } from "@/hooks/useUploadQueue";
 import { useT } from "@/lib/i18n/provider";
 import { uploadMessages, type UploadKey } from "@/lib/i18n/messages/upload";
+import { myDownloadMessages } from "@/lib/i18n/messages/my-download";
 import type { TFunction } from "@/lib/i18n";
 import type { QueueItem } from "@/lib/upload/queue-db";
 
@@ -22,6 +24,7 @@ function statusText(i: QueueItem, t: TFunction<UploadKey>) {
 /** Per-photo progress with clear states, retry, and an offline notice. */
 export function UploadQueue({ queue, onNewBatch }: { queue: Queue; onNewBatch?: () => void }) {
   const t = useT(uploadMessages);
+  const td = useT(myDownloadMessages);
   const { items, batches, counts, online } = queue;
   const newBatchButton = onNewBatch ? (
     <Button className="min-h-12 w-full text-base" onClick={onNewBatch}>
@@ -39,6 +42,7 @@ export function UploadQueue({ queue, onNewBatch }: { queue: Queue; onNewBatch?: 
   }
   const savedReports = batches.filter((b) => b.reportId).length;
   const allFinished = counts.pending === 0 && counts.failed === 0;
+  const savedPhotoIds = items.filter((i) => i.status === "done" && i.photoId).map((i) => i.photoId as string);
 
   return (
     <section className="flex flex-col gap-3" aria-label={t("queueTitle")}>
@@ -47,6 +51,12 @@ export function UploadQueue({ queue, onNewBatch }: { queue: Queue; onNewBatch?: 
           <p className="flex items-center gap-2 font-semibold">
             <CheckCircle2 className="size-5 text-success" aria-hidden /> {t("allDone")}
           </p>
+          {savedPhotoIds.length ? (
+            <div className="flex flex-col gap-1">
+              <MyDownloadButton photoIds={savedPhotoIds} label={td("downloadThese")} className="min-h-12 w-full text-base" />
+              <p className="text-xs text-muted-foreground">{td("hint")}</p>
+            </div>
+          ) : null}
           {newBatchButton}
         </div>
       ) : null}
