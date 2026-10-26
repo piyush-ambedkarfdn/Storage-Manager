@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,11 @@ import type { PhotoOverride } from "@/lib/upload/queue-db";
 import { activityLabel } from "@/config/activity-types";
 import { useProfile } from "@/hooks/useProfile";
 import { useUploadQueue } from "@/hooks/useUploadQueue";
-import { readExif } from "@/lib/image";
+import { usePhotoPreparer } from "@/hooks/usePhotoPreparer";
+import { clearUploadDraft, loadUploadDraft, removeDraftPhoto, saveDraftForm, saveDraftPhoto } from "@/lib/upload/draft-db";
+import { uploadSafeMessages } from "@/lib/i18n/messages/uploadSafe";
+import { uuid } from "@/lib/uuid";
+import { cn } from "@/lib/utils";
 import { batchDetailsSchema, type BatchDetails } from "@/lib/schemas/report";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { uploadMessages } from "@/lib/i18n/messages/upload";
@@ -55,7 +59,6 @@ export function BatchForm() {
   const [activity, setActivity] = useState("");
   const [date, setDate] = useState(today);
   const [dateTouched, setDateTouched] = useState(false);
-  const [dateFromPhoto, setDateFromPhoto] = useState(false);
   const [takenBy, setTakenBy] = useState(profile.full_name ?? "");
   const [report, setReport] = useState<ReportParts>(EMPTY_REPORT);
   const [themes, setThemes] = useState<string[]>([]);
@@ -65,6 +68,103 @@ export function BatchForm() {
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const ts = useT(uploadSafeMessages);
+  const { prepare, cancel } = usePhotoPreparer(setPhotos);
+  const [draftInfo, setDraftInfo] = useState<{ savedAt: number } | null>(null);
+  /** true once the saved draft (if any) has been read, so we never overwrite it with an empty form */
+  const hydrated = useRef(false);
+  /** photo keys already written to the draft */
+  const keptKeys = useRef(new Set<string>());
+
+  // The camera date of the first photo fills the date field, until the person picks a date themselves.
+  const photoDate = useMemo(() => photos.find((p) => p.status === "ready" && p.takenAt)?.takenAt?.slice(0, 10) ?? null, [photos]);
+  const shownDate = !dateTouched && photoDate ? photoDate : date;
+  const dateFromPhoto = !dateTouched && !!photoDate;
+
+  // Bring back an unfinished upload (answers and photos) from an earlier visit, within 24 hours.
+  useEffect(() => {
+    let stop = false;
+    void (async () => {
+      const d = await loadUploadDraft(profile.id);
+      if (stop) return;
+      if (d) {
+        const f = d.form;
+        setPlace(f.place as PlaceState);
+        setActivity(f.activity);
+        setDate(f.date);
+        setDateTouched(f.dateTouched);
+        setTakenBy(f.takenBy);
+        setReport(f.report);
+        setThemes(f.themes);
+        setConsent(f.consent);
+        setPeople(f.people);
+        d.photos.forEach((p) => keptKeys.current.add(p.key));
+        setPhotos(d.photos.map((p) => ({ key: p.key, name: p.name, status: "ready", file: p.file, thumb: p.thumb, width: p.width, height: p.height, takenAt: p.takenAt, override: p.override })));
+        setStep(f.step);
+        setDraftInfo({ savedAt: d.savedAt });
+      }
+      hydrated.current = true;
+    })();
+    return () => {
+      stop = true;
+    };
+  }, [profile.id]);
+
+  // Keep the draft up to date a moment after each change; remove it when the form is empty.
+  useEffect(() => {
+    if (!hydrated.current || step === 3 || sending) return;
+    const empty =
+      !photos.length && !place.program_id && !activity && !people && !themes.length && !Object.values(report).some((v) => v.trim());
+    const id = setTimeout(() => {
+      if (empty) {
+        keptKeys.current.clear();
+        void clearUploadDraft(profile.id);
+        return;
+      }
+      void (async () => {
+        const live = new Set(photos.map((p) => p.key));
+        for (const key of [...keptKeys.current]) {
+          if (!live.has(key)) {
+            keptKeys.current.delete(key);
+            await removeDraftPhoto(profile.id, key);
+          }
+        }
+        for (const p of photos) {
+          if (p.status !== "ready" || !p.file || !p.thumb || keptKeys.current.has(p.key)) continue;
+          const ok = await saveDraftPhoto(profile.id, { key: p.key, name: p.name, file: p.file, thumb: p.thumb, width: p.width, height: p.height, takenAt: p.takenAt });
+          if (ok) keptKeys.current.add(p.key);
+        }
+        await saveDraftForm(
+          profile.id,
+          { step: step === 2 ? 2 : 1, place, activity, date: shownDate, dateTouched, dateFromPhoto: false, takenBy, report, themes, consent, people },
+          photos.filter((p) => keptKeys.current.has(p.key)).map((p) => ({ key: p.key, override: p.override })),
+        );
+      })();
+    }, 700);
+    return () => clearTimeout(id);
+  }, [profile.id, step, sending, photos, place, activity, shownDate, dateTouched, takenBy, report, themes, consent, people]);
+
+  const preparing = photos.filter((p) => p.status === "preparing").length;
+  const ready = photos.filter((p) => p.status === "ready" && p.file);
+  const bottomClass = profile.role === "admin" ? "bottom-0" : "bottom-[calc(3.5rem+env(safe-area-inset-bottom))]";
+
+  function discardDraft() {
+    keptKeys.current.clear();
+    void clearUploadDraft(profile.id);
+    setDraftInfo(null);
+    setPhotos([]);
+    setPlace({ program_id: null, district_id: null, block: null, panchayat: null, village: null });
+    setActivity("");
+    setDate(today());
+    setDateTouched(false);
+    setReport(EMPTY_REPORT);
+    setThemes([]);
+    setConsent("unknown");
+    setPeople("");
+    setMissing(new Map());
+    setStep(1);
+    toast.success(ts("draftDiscarded"));
+  }
 
   function details(): BatchDetails | null {
     const candidate = {
@@ -74,7 +174,7 @@ export function BatchForm() {
       panchayat_id: place.panchayat?.id ?? "",
       village_id: place.village?.id ?? "",
       activity_type: activity,
-      event_date: date,
+      event_date: shownDate,
       taken_by: takenBy,
       report_parts: report,
       theme_ids: themes,
@@ -97,15 +197,24 @@ export function BatchForm() {
     return null;
   }
 
-  async function addFiles(files: File[]) {
-    setPhotos((p) => [...p, ...files.map((file) => ({ key: crypto.randomUUID(), file, override: { has_children: false } }))]);
-    if (!dateTouched && files[0]) {
-      const { takenAt } = await readExif(files[0]);
-      if (takenAt) {
-        setDate(takenAt.slice(0, 10));
-        setDateFromPhoto(true);
-      }
-    }
+  function addFiles(files: File[]) {
+    const jobs = files.map((file) => ({ key: uuid(), file }));
+    setPhotos((p) => [
+      ...p,
+      ...jobs.map(({ key, file }) => ({
+        key,
+        name: file.name || "photo.jpg",
+        status: "preparing" as const,
+        file: null,
+        thumb: null,
+        width: 0,
+        height: 0,
+        takenAt: null,
+        override: { has_children: false },
+      })),
+    ]);
+    // shrink them one by one in the background; the cards fill in as each is ready
+    prepare(jobs);
   }
 
   function changePhoto(key: string, patch: Partial<PhotoOverride>) {
@@ -121,6 +230,15 @@ export function BatchForm() {
   }
 
   async function startUpload() {
+    if (sending) return;
+    if (preparing > 0) {
+      toast.info(ts("waitPrep"));
+      return;
+    }
+    if (photos.length && !ready.length) {
+      toast.error(ts("nothingReady"));
+      return;
+    }
     const d = details();
     if (!d || !photos.length) return;
     // every photo needs the program's required categories
@@ -133,11 +251,36 @@ export function BatchForm() {
       return;
     }
     setSending(true);
-    const label = [place.village?.name, activityLabel(d.activity_type, locale), d.event_date].filter(Boolean).join(" · ");
-    await queue.add(d, label, photos.map((p) => ({ file: p.file, override: p.override })));
-    setSending(false);
-    setPhotos([]);
-    setStep(3);
+    try {
+      const label = [place.village?.name, activityLabel(d.activity_type, locale), d.event_date].filter(Boolean).join(" · ");
+      const items = ready.map((p) => ({
+        file: p.file as Blob,
+        name: p.name,
+        override: p.override,
+        prepared: { width: p.width, height: p.height, thumb: p.thumb as Blob, takenAt: p.takenAt },
+      }));
+      // a phone that is out of space can make this hang: stop waiting after 45 seconds and say so
+      await Promise.race([
+        queue.add(d, label, items),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("slow")), 45_000)),
+      ]);
+      const left = photos.length - ready.length;
+      if (left > 0) toast.info(ts("skipped", { n: left }));
+      keptKeys.current.clear();
+      void clearUploadDraft(profile.id);
+      setPhotos([]);
+      setSelectedNone();
+      setStep(3);
+    } catch (err) {
+      console.error("[upload] could not queue the photos", err);
+      toast.error(err instanceof Error && err.message === "slow" ? ts("saveSlow") : ts("saveFailed", { reason: err instanceof Error && err.message ? err.message : "?" }));
+    } finally {
+      setSending(false);
+    }
+  }
+  function setSelectedNone() {
+    setMissing(new Map());
+    setDraftInfo(null);
   }
 
   function newBatch() {
@@ -147,7 +290,6 @@ export function BatchForm() {
     setThemes([]);
     setPeople("");
     setDateTouched(false);
-    setDateFromPhoto(false);
     setStep(1);
   }
 
@@ -170,6 +312,15 @@ export function BatchForm() {
           <div className="h-1.5 rounded-full bg-primary transition-all" style={{ width: `${(step / 3) * 100}%` }} />
         </div>
       </div>
+
+      {draftInfo && step !== 3 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm" role="status">
+          <span>{ts("draftRestored", { when: new Date(draftInfo.savedAt).toLocaleString(locale === "hi" ? "hi-IN" : "en-IN", { dateStyle: "medium", timeStyle: "short" }) })}</span>
+          <Button variant="outline" size="sm" className="min-h-9" onClick={discardDraft}>
+            {ts("discardDraft")}
+          </Button>
+        </div>
+      ) : null}
 
       {step !== 3 && queue.counts.pending > 0 ? (
         <div className="flex items-center justify-between gap-2 rounded-md border bg-card px-3 py-2 text-sm">
@@ -207,13 +358,12 @@ export function BatchForm() {
               <Input
                 id="event-date"
                 type="date"
-                value={date}
+                value={shownDate}
                 max={today()}
                 onChange={(e) => {
                   setDate(e.target.value);
                   setDateTouched(true);
-                  setDateFromPhoto(false);
-                }}
+                              }}
                 className="min-h-11"
                 aria-invalid={!!errors.event_date || undefined}
               />
@@ -242,21 +392,35 @@ export function BatchForm() {
 
       {step === 2 ? (
         <div className="flex flex-col gap-4">
-          <Dropzone onAdd={(f) => void addFiles(f)} />
+          <Dropzone onAdd={addFiles} />
           <PhotoList
             photos={photos}
             programFields={programFields}
             missing={missing}
             onChange={changePhoto}
-            onRemove={(key) => setPhotos((p) => p.filter((x) => x.key !== key))}
+            onRemove={(key) => {
+              cancel(key);
+              setPhotos((p) => p.filter((x) => x.key !== key));
+            }}
             onEdit={setEditing}
           />
-          <div className="flex gap-2">
-            <Button variant="outline" className="min-h-12" onClick={() => setStep(1)}>
+          {/* stays in view while scrolling a long list of photos; sits above the bottom menu on phones */}
+          <div className={cn("sticky z-20 -mx-4 flex gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur", bottomClass)}>
+            <Button variant="outline" className="min-h-12" onClick={() => setStep(1)} disabled={sending}>
               <ArrowLeft aria-hidden /> {t("back")}
             </Button>
-            <Button className="min-h-12 flex-1 text-base" disabled={!photos.length || sending} onClick={startUpload}>
-              {t("upload", { n: photos.length })}
+            <Button className="min-h-12 flex-1 text-base" disabled={!photos.length || sending || preparing > 0} onClick={() => void startUpload()} aria-busy={sending || preparing > 0}>
+              {sending ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden /> {ts("saving")}
+                </>
+              ) : preparing > 0 ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden /> {ts("preparing", { done: photos.length - preparing, total: photos.length })}
+                </>
+              ) : (
+                t("upload", { n: ready.length || photos.length })
+              )}
             </Button>
           </div>
           <PhotoOverrideSheet

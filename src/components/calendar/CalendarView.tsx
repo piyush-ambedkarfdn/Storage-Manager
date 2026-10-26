@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { hi as hiLocale } from "date-fns/locale";
@@ -9,8 +10,9 @@ import { CalendarMonthView } from "@/components/calendar/CalendarMonthView";
 import { CalendarTable } from "@/components/calendar/CalendarTable";
 import { CalendarToolbar } from "@/components/calendar/CalendarToolbar";
 import { DaysPanel } from "@/components/calendar/DaysPanel";
-import { IdeasDialog } from "@/components/calendar/IdeasDialog";
-import { ImportDialog } from "@/components/calendar/ImportDialog";
+// rarely used dialogs load only when opened
+const IdeasDialog = dynamic(() => import("@/components/calendar/IdeasDialog").then((m) => m.IdeasDialog), { ssr: false });
+const ImportDialog = dynamic(() => import("@/components/calendar/ImportDialog").then((m) => m.ImportDialog), { ssr: false });
 import { ItemPanel } from "@/components/calendar/ItemPanel";
 import { NewItemDialog, type NewItemInitial } from "@/components/calendar/NewItemDialog";
 import { useContentItems } from "@/hooks/useContentItems";
@@ -119,8 +121,8 @@ export function CalendarView() {
         onCreated={refresh}
       />
       <ItemPanel itemId={panel} onClose={() => setPanel(null)} onChanged={refresh} />
-      <IdeasDialog month={month} open={ideas} onOpenChange={setIdeas} onDone={refresh} />
-      <ImportDialog open={importing} onOpenChange={setImporting} onDone={refresh} onShowMonth={(m) => setUrl({ month: m })} />
+      {ideas ? <IdeasDialog month={month} open onOpenChange={setIdeas} onDone={refresh} /> : null}
+      {importing ? <ImportDialog open onOpenChange={setImporting} onDone={refresh} onShowMonth={(m) => setUrl({ month: m })} /> : null}
     </div>
   );
 }

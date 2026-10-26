@@ -4,13 +4,11 @@ import { requireAdmin } from "@/lib/auth";
 import { getT } from "@/lib/i18n/server";
 import { galleryMessages } from "@/lib/i18n/messages/gallery";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { ActivityFilterChips } from "@/components/gallery/ActivityFilterChips";
 import { Crumbs } from "@/components/gallery/Crumbs";
-import { FilterBar } from "@/components/gallery/FilterBar";
+import { GalleryFilterMemory } from "@/components/gallery/GalleryFilterMemory";
+import { GalleryFilterPanel } from "@/components/gallery/GalleryFilterPanel";
 import { FolderTree } from "@/components/gallery/FolderTree";
 import { PhotoGrid } from "@/components/gallery/PhotoGrid";
-import { ThemeFilterChips } from "@/components/gallery/ThemeFilterChips";
-import { CategoryFilterChips } from "@/components/categories/CategoryFilterChips";
 
 export const metadata: Metadata = { title: "Gallery" };
 
@@ -27,11 +25,9 @@ export default async function GalleryPage() {
             <FolderTree />
           </div>
           <div className="flex min-w-0 flex-col gap-3">
+            <GalleryFilterMemory />
+            <GalleryFilterPanel />
             <Crumbs />
-            <ActivityFilterChips />
-            <ThemeFilterChips />
-            <CategoryFilterChips />
-            <FilterBar />
             <PhotoGrid />
           </div>
         </div>

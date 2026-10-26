@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { filtersToParams, parseFilters } from "@/lib/gallery/filters";
+import { activeFilterCount, programOfFilters } from "@/lib/gallery/program-filter";
 import type { GalleryFilters } from "@/types/gallery";
 
 /** Gallery filters kept in the URL, so views can be bookmarked, shared, and restored by Back. */
@@ -26,5 +27,11 @@ export function useGalleryFilters() {
   const treeQuery = useMemo(() => filtersToParams(filters, { withFolders: false }).toString(), [filters]);
   const fullQuery = useMemo(() => filtersToParams(filters).toString(), [filters]);
 
-  return { filters, setFilters, treeQuery, fullQuery };
+  /** Removes every filter (folders, program, categories, activity, themes, dates, consent, rating, uploader, story, unused): all photos again. */
+  const clearAll = useCallback(() => router.replace(pathname, { scroll: false }), [pathname, router]);
+  const activeCount = useMemo(() => activeFilterCount(filters), [filters]);
+  /** The one program the current folders belong to (null = none chosen, or folders of several programs). */
+  const program = useMemo(() => programOfFilters(filters), [filters]);
+
+  return { filters, setFilters, clearAll, activeCount, program, treeQuery, fullQuery };
 }

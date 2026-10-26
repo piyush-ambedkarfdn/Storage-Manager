@@ -1,13 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import { Images } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { BulkEditDialog } from "@/components/gallery/BulkEditDialog";
-import { DownloadDialog } from "@/components/gallery/DownloadDialog";
+// dialogs are only loaded when someone opens them (keeps the gallery page light)
+const BulkEditDialog = dynamic(() => import("@/components/gallery/BulkEditDialog").then((m) => m.BulkEditDialog), { ssr: false });
+const DownloadDialog = dynamic(() => import("@/components/gallery/DownloadDialog").then((m) => m.DownloadDialog), { ssr: false });
 import { PhotoCard } from "@/components/gallery/PhotoCard";
 import { SelectionBar } from "@/components/gallery/SelectionBar";
 import { requestJson } from "@/hooks/useOptions";
@@ -28,6 +30,8 @@ export function PhotoGrid() {
 
   const query = useInfiniteQuery({
     queryKey: ["gallery", fullQuery],
+    // keep showing the photos on screen while a changed filter loads, instead of flashing empty
+    placeholderData: keepPreviousData,
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
       requestJson<GalleryPage>(`/api/gallery?${fullQuery}${fullQuery ? "&" : ""}limit=48${pageParam ? `&cursor=${encodeURIComponent(pageParam)}` : ""}`),
@@ -101,7 +105,7 @@ export function PhotoGrid() {
       {downloadOpen ? (
         <DownloadDialog open onOpenChange={setDownloadOpen} viewQuery={fullQuery} viewCount={total} selectedIds={selected} />
       ) : null}
-      <BulkEditDialog ids={selected} open={editOpen} onOpenChange={setEditOpen} onDone={refresh} />
+      {editOpen ? <BulkEditDialog ids={selected} open onOpenChange={setEditOpen} onDone={refresh} /> : null}
     </section>
   );
 }

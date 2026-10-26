@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { QueryProvider } from "@/components/layout/QueryProvider";
 import { RegisterSW } from "@/components/layout/RegisterSW";
+import { NavProgress } from "@/components/layout/NavProgress";
+import { DraftJanitor } from "@/components/layout/DraftJanitor";
 import { I18nProvider } from "@/lib/i18n/provider";
 import { getLocale } from "@/lib/i18n/server";
 import { APP } from "@/config/app";
@@ -51,6 +53,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 {children}
                 <Toaster richColors closeButton />
                 <RegisterSW />
+                <DraftJanitor />
+                <NavProgress />
               </QueryProvider>
             </ActivityTypesProvider>
           </I18nProvider>

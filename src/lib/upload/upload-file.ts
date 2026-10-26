@@ -89,14 +89,23 @@ export async function uploadItem(
 ): Promise<{ status: "done" | "duplicate"; photoId: string | null }> {
   if (!item.file) throw new UploadError("The photo file is missing on this phone. Add it again.", false);
 
-  report("compressing", 0.05);
-  let original, thumb;
-  try {
-    [original, thumb] = await Promise.all([compressImage(item.file), makeThumbnail(item.file)]);
-  } catch (err) {
-    throw new UploadError(err instanceof Error ? err.message : "This file is not a photo.", false);
+  let original, thumb, exif: { takenAt: string | null };
+  if (item.prepared) {
+    // shrunk when it was picked (this is the normal case now)
+    original = { blob: item.file, width: item.prepared.width, height: item.prepared.height };
+    thumb = { blob: item.prepared.thumb };
+    exif = { takenAt: item.prepared.takenAt };
+  } else {
+    // photos queued by an older version of the app
+    report("compressing", 0.05);
+    try {
+      [original, thumb] = await Promise.all([compressImage(item.file), makeThumbnail(item.file)]);
+    } catch (err) {
+      throw new UploadError(err instanceof Error ? err.message : "This file is not a photo.", false);
+    }
+    exif = await readExif(item.file);
   }
-  const [hash, exif] = await Promise.all([sha256(original.blob), readExif(item.file)]);
+  const hash = await sha256(original.blob);
 
   report("checking", 0.15);
   const { duplicate } = await postJson<{ duplicate: boolean }>("/api/photos/check-hash", { hash });

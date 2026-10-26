@@ -7,12 +7,12 @@ import { useLocale, useT } from "@/lib/i18n/provider";
 import { categoriesMessages } from "@/lib/i18n/messages/categories";
 
 /** Gallery filter: one row per program category ("GOONJ · Stage: Before / During / After"). */
-export function CategoryFilterChips() {
+export function CategoryFilterChips({ programId }: { programId?: string } = {}) {
   const t = useT(categoriesMessages);
   const locale = useLocale();
   const { fields } = useAllProgramFields();
   const { filters, setFilters } = useGalleryFilters();
-  const withOptions = fields.filter((f) => f.options.length);
+  const withOptions = fields.filter((f) => f.options.length && (!programId || f.program_id === programId));
   if (!withOptions.length) return null;
   const toggle = (id: string) =>
     setFilters({ categories: filters.categories.includes(id) ? filters.categories.filter((x) => x !== id) : [...filters.categories, id] });
@@ -21,7 +21,7 @@ export function CategoryFilterChips() {
       {withOptions.map((f) => (
         <div key={f.id} className="flex flex-wrap items-center gap-1.5">
           <span className="text-sm text-muted-foreground">
-            {f.program_name ? `${f.program_name} · ` : ""}
+            {!programId && f.program_name ? `${f.program_name} · ` : ""}
             {locale === "hi" && f.label_hi ? f.label_hi : f.label}:
           </span>
           {f.options.map((o) => {

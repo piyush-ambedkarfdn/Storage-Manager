@@ -36,8 +36,10 @@ export type QueueItem = {
   batchId: string;
   userId: string;
   name: string;
-  /** the original file; removed once uploaded to free phone storage */
+  /** the photo to upload; removed once uploaded to free phone storage. New items hold the already shrunk copy (see `prepared`) */
   file: Blob | null;
+  /** set when the photo was shrunk when it was picked: the upload skips compressing and reuses these */
+  prepared?: { width: number; height: number; thumb: Blob; takenAt: string | null } | null;
   status: QueueStatus;
   stage: "" | "compressing" | "checking" | "uploading" | "saving";
   progress: number;

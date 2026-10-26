@@ -1,6 +1,6 @@
 "use client";
 
-import { SlidersHorizontal, X } from "lucide-react";
+import { AlertCircle, Loader2, SlidersHorizontal, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/rating/StarRating";
@@ -10,6 +10,7 @@ import { useT } from "@/lib/i18n/provider";
 import { uploadMessages } from "@/lib/i18n/messages/upload";
 import { uploadPhotosMessages } from "@/lib/i18n/messages/uploadPhotos";
 import { ratingMessages } from "@/lib/i18n/messages/rating";
+import { uploadSafeMessages } from "@/lib/i18n/messages/uploadSafe";
 import type { PhotoOverride } from "@/lib/upload/queue-db";
 import type { FieldValues, ProgramField } from "@/types/program-fields";
 
@@ -46,6 +47,7 @@ export function PhotoList({
   const t = useT(uploadMessages);
   const tp = useT(uploadPhotosMessages);
   const tr = useT(ratingMessages);
+  const ts = useT(uploadSafeMessages);
 
   if (photos.length === 0) return <p className="text-sm text-muted-foreground">{t("noPhotos")}</p>;
 
@@ -67,7 +69,13 @@ export function PhotoList({
             <li key={p.key} id={`photo-${p.key}`} className="flex flex-col gap-3 rounded-lg border bg-card p-3">
               <div className="flex gap-3">
                 <div className="w-20 shrink-0">
-                  <BlobThumb blob={p.file} alt={p.file.name} />
+                  {p.thumb ? (
+                    <BlobThumb blob={p.thumb} alt={p.name} />
+                  ) : (
+                    <div className="grid aspect-square w-full place-items-center rounded-md bg-photo-surface text-muted-foreground" role={p.status === "error" ? "alert" : "status"}>
+                      {p.status === "error" ? <AlertCircle className="size-6 text-destructive" aria-hidden /> : <Loader2 className="size-6 animate-spin" aria-hidden />}
+                    </div>
+                  )}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex items-start justify-between gap-2">
@@ -75,12 +83,14 @@ export function PhotoList({
                     <button
                       type="button"
                       onClick={() => onRemove(p.key)}
-                      aria-label={`${t("removePhoto")}: ${p.file.name}`}
+                      aria-label={`${t("removePhoto")}: ${p.name}`}
                       className="grid size-9 shrink-0 place-items-center rounded-full border bg-background"
                     >
                       <X className="size-4" aria-hidden />
                     </button>
                   </div>
+                  {p.status === "preparing" ? <span className="text-xs text-muted-foreground">{ts("preparingShort")}</span> : null}
+                  {p.status === "error" ? <span className="text-xs text-destructive">{p.error ?? ts("photoError")}</span> : null}
                   <div className="-ml-2 flex items-center gap-2">
                     <StarRating value={p.override.rating} onChange={(rating) => onChange(p.key, { rating })} />
                   </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { clearAllDrafts } from "@/lib/drafts/store";
+import { clearAllUploadDrafts } from "@/lib/upload/draft-db";
 import { useRouter } from "next/navigation";
 import { KeyRound, LogOut, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,9 @@ export function UserMenu() {
   const name = profile.full_name || profile.login_id || profile.email || "";
 
   async function signOut() {
+    // nothing this person typed or picked stays on the device
+    clearAllDrafts();
+    await clearAllUploadDrafts();
     await createClient().auth.signOut();
     router.replace("/login");
     router.refresh();

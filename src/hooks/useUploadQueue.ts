@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { useQueryClient } from "@tanstack/react-query";
 import { isEnabled } from "@/config/features";
 import { useProfile } from "@/hooks/useProfile";
+import { uuid } from "@/lib/uuid";
 import {
   addBatch,
   clearFinished,
@@ -33,7 +34,13 @@ function subscribeOnline(cb: () => void) {
   };
 }
 
-export type NewPhoto = { file: File; override: PhotoOverride };
+export type NewPhoto = {
+  /** the (already shrunk) photo */
+  file: Blob;
+  name: string;
+  override: PhotoOverride;
+  prepared?: { width: number; height: number; thumb: Blob; takenAt: string | null };
+};
 
 /**
  * The upload queue: one photo at a time, saved in IndexedDB, resumes after reload or when the
@@ -177,13 +184,14 @@ export function useUploadQueue() {
   const add = useCallback(
     async (details: BatchDetails, label: string, photos: NewPhoto[]) => {
       const now = Date.now();
-      const batch: QueueBatch = { id: crypto.randomUUID(), userId: profile.id, createdAt: now, details, label, reportId: null };
+      const batch: QueueBatch = { id: uuid(), userId: profile.id, createdAt: now, details, label, reportId: null };
       const queued: QueueItem[] = photos.map((p, i) => ({
-        id: crypto.randomUUID(),
+        id: uuid(),
         batchId: batch.id,
         userId: profile.id,
-        name: p.file.name || `photo-${i + 1}.jpg`,
+        name: p.name || `photo-${i + 1}.jpg`,
         file: p.file,
+        prepared: p.prepared ?? null,
         status: "waiting",
         stage: "",
         progress: 0,

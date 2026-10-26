@@ -8,7 +8,10 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
     () =>
       new QueryClient({
         defaultOptions: {
-          queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 },
+          // Data stays in memory for 10 minutes after a page is left, so switching tabs and coming back is instant
+          // (it is refreshed in the background once it is 30 seconds old).
+          queries: { staleTime: 30_000, gcTime: 10 * 60_000, refetchOnWindowFocus: false, refetchOnReconnect: true, retry: 1 },
+          mutations: { retry: 0 },
         },
       }),
   );

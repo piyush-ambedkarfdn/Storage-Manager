@@ -89,7 +89,7 @@ export function UploadQueue({ queue, onNewBatch }: { queue: Queue; onNewBatch?: 
                 return (
                   <li key={i.id} className="flex items-center gap-3 rounded-lg border bg-card p-2">
                     <div className="w-14 shrink-0">
-                      {i.file ? <BlobThumb blob={i.file} alt="" /> : <div className="aspect-square rounded-md bg-photo-surface" />}
+                      {i.prepared?.thumb || i.file ? <BlobThumb blob={(i.prepared?.thumb ?? i.file) as Blob} alt="" /> : <div className="aspect-square rounded-md bg-photo-surface" />}
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
                       <div className="flex items-center justify-between gap-2 text-sm">

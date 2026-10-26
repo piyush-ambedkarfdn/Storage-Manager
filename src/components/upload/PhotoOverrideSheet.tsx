@@ -60,10 +60,10 @@ function Body({
     <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pb-4">
       <SheetHeader className="px-0">
         <SheetTitle>{t("overrideTitle")}</SheetTitle>
-        <SheetDescription className="sr-only">{photo.file.name}</SheetDescription>
+        <SheetDescription className="sr-only">{photo.name}</SheetDescription>
       </SheetHeader>
       <div className="w-28">
-        <BlobThumb blob={photo.file} alt={photo.file.name} />
+        {photo.thumb ? <BlobThumb blob={photo.thumb} alt={photo.name} /> : <div className="aspect-square rounded-md bg-photo-surface" />}
       </div>
       <NameCombobox
         level="village"

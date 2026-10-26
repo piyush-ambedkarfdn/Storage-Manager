@@ -8,7 +8,22 @@ import { useT } from "@/lib/i18n/provider";
 import { uploadMessages } from "@/lib/i18n/messages/upload";
 import type { PhotoOverride } from "@/lib/upload/queue-db";
 
-export type DraftPhoto = { key: string; file: File; override: PhotoOverride };
+/**
+ * A photo picked in step 2. It is shrunk right away (see usePhotoPreparer): `file` becomes the small upload copy and
+ * `thumb` the preview, so a phone never has to hold ten full-size camera photos at once.
+ */
+export type DraftPhoto = {
+  key: string;
+  name: string;
+  status: "preparing" | "ready" | "error";
+  file: Blob | null;
+  thumb: Blob | null;
+  width: number;
+  height: number;
+  takenAt: string | null;
+  error?: string;
+  override: PhotoOverride;
+};
 
 /** Shows a File/Blob as an image and frees the memory afterwards. */
 export function BlobThumb({ blob, alt, className }: { blob: Blob; alt: string; className?: string }) {

@@ -15,6 +15,9 @@ import { PhotoStrip } from "@/components/calendar/PhotoStrip";
 import { ReportContext } from "@/components/calendar/ReportContext";
 import { activityLabel } from "@/config/activity-types";
 import { requestJson, useOptions } from "@/hooks/useOptions";
+import { useDraftState } from "@/hooks/useDraft";
+import { TTL } from "@/lib/drafts/store";
+import { draftsMessages } from "@/lib/i18n/messages/drafts";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { calendarMessages } from "@/lib/i18n/messages/calendar";
 import type { ContentItem, PhotosInfo } from "@/types/content";
@@ -152,26 +155,37 @@ export function NewItemDialog({
   );
 }
 
+const blankDraft = (initial: NewItemInitial): ItemDraft => ({
+  publish_date: initial.date ?? null,
+  platform: null,
+  content_format: null,
+  content_pillar: null,
+  title: initial.title ?? null,
+  content_brief: null,
+  caption: null,
+  hashtags: null,
+  cta: null,
+  goal: null,
+  status: "",
+  production_stage: "",
+  awareness_day: initial.dayKey ?? null,
+});
+const isBlankDraft = (d: ItemDraft) => [d.title, d.content_brief, d.caption, d.hashtags, d.cta, d.platform, d.content_format, d.content_pillar, d.goal, d.publish_date].every((v) => !v?.toString().trim());
+
 function Body({ initial, onOpenChange, onCreated }: { initial: NewItemInitial; onOpenChange: (o: boolean) => void; onCreated: () => void }) {
   const t = useT(calendarMessages);
   const locale = useLocale();
   const { options: statuses } = useOptions("status");
   const { options: stages } = useOptions("stage");
   const titleRef = useRef<HTMLInputElement>(null);
-  const [draft, setDraft] = useState<ItemDraft>({
-    publish_date: initial.date ?? null,
-    platform: null,
-    content_format: null,
-    content_pillar: null,
-    title: initial.title ?? null,
-    content_brief: null,
-    caption: null,
-    hashtags: null,
-    cta: null,
-    goal: null,
-    status: "",
-    production_stage: "",
-    awareness_day: initial.dayKey ?? null,
+  const td = useT(draftsMessages);
+  // A post typed from scratch is kept for 12 hours, so closing the window or switching tabs loses nothing.
+  // A post opened for a particular day, title or photos starts fresh.
+  const fresh = !initial.date && !initial.dayKey && !initial.title && !(initial.photoIds?.length);
+  const { value: draft, setValue: setDraft, restored, discard, forget } = useDraftState<ItemDraft>("calendar-new-item", blankDraft(initial), {
+    ttlMs: TTL.calendarItem,
+    enabled: fresh,
+    isEmpty: isBlankDraft,
   });
   const [photoIds, setPhotoIds] = useState<string[]>(initial.photoIds ?? []);
   const [confirmed, setConfirmed] = useState(false);
@@ -210,6 +224,7 @@ function Body({ initial, onOpenChange, onCreated }: { initial: NewItemInitial; o
       };
       await requestJson("/api/content", { method: "POST", body });
       toast.success(t("created"));
+      forget();
       onCreated();
       onOpenChange(false);
     } catch (err) {
@@ -225,6 +240,14 @@ function Body({ initial, onOpenChange, onCreated }: { initial: NewItemInitial; o
         <DialogTitle>{t("newTitle")}</DialogTitle>
         <DialogDescription className="sr-only">{t("newTitle")}</DialogDescription>
       </DialogHeader>
+      {restored ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm" role="status">
+          <span>{td("postRestored")}</span>
+          <Button type="button" variant="outline" size="sm" className="min-h-9" onClick={discard}>
+            {td("startAgain")}
+          </Button>
+        </div>
+      ) : null}
       <div className="grid gap-6 lg:grid-cols-2">
         <ItemFields
           value={shown}
@@ -253,7 +276,12 @@ function Body({ initial, onOpenChange, onCreated }: { initial: NewItemInitial; o
         </div>
       </div>
       <DialogFooter className="gap-2">
-        <Button variant="outline" className="min-h-11" onClick={() => onOpenChange(false)} disabled={busy}>
+        <Button variant="outline" className="min-h-11" onClick={() => {
+            discard();
+            onOpenChange(false);
+          }}
+          disabled={busy}
+        >
           {t("cancel")}
         </Button>
         <Button variant="outline" className="min-h-11" onClick={() => save(true)} disabled={busy}>
