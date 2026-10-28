@@ -9,11 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { MyDownloadButton } from "@/components/uploads/MyDownloadButton";
+import { StatusBadge } from "@/components/uploads/StatusBadge";
 import { requestJson } from "@/hooks/useOptions";
 import { filterOptions, filterPhotos, groupPhotos, hasFilters, NO_FILTERS, NONE, type MyPhotoFilters } from "@/lib/uploads/my-photos-view";
 import { useT } from "@/lib/i18n/provider";
 import { myPhotosMessages } from "@/lib/i18n/messages/my-photos";
+import { reviewMessages } from "@/lib/i18n/messages/review";
 import type { MyPhoto } from "@/types/my-photos";
 
 const ALL = "__all__";
@@ -21,6 +22,7 @@ const ALL = "__all__";
 /** My uploads by date: Date > Activity type > Village > photos, with filters at the top. */
 export function MyPhotosView() {
   const t = useT(myPhotosMessages);
+  const tv = useT(reviewMessages);
   const [filters, setFilters] = useState<MyPhotoFilters>(NO_FILTERS);
   const query = useQuery({ queryKey: ["my-photos"], queryFn: () => requestJson<{ photos: MyPhoto[] }>("/api/my-photos").then((r) => r.photos) });
   const photos = useMemo(() => query.data ?? [], [query.data]);
@@ -54,6 +56,15 @@ export function MyPhotosView() {
           {t("to")}
           <Input type="date" className="h-10 w-40" value={filters.to} min={filters.from || undefined} onChange={(e) => set({ to: e.target.value })} />
         </label>
+        {options.statuses.length > 1 ? (
+          <FilterSelect label={tv("status")} value={pick(filters.status)} onChange={(v) => set({ status: unpick(v) as MyPhotoFilters["status"] })} allLabel={t("all")}>
+            {options.statuses.map((s) => (
+              <SelectItem key={s} value={s}>
+                {s === "pending" ? tv("statusPending") : s === "active" ? tv("statusActive") : tv("statusRejected")}
+              </SelectItem>
+            ))}
+          </FilterSelect>
+        ) : null}
         {options.programs.length > 1 ? (
           <FilterSelect label={t("program")} value={pick(filters.program)} onChange={(v) => set({ program: unpick(v) })} allLabel={t("all")}>
             {options.programs.map(([id, name]) => (
@@ -91,9 +102,6 @@ export function MyPhotosView() {
           {filtered ? t("countOf", { n: shown.length, total: photos.length }) : t("count", { n: photos.length })}
           {photos.length >= 2000 ? ` · ${t("capNote", { n: 2000 })}` : ""}
         </p>
-        {shown.length ? (
-          <MyDownloadButton photoIds={shown.map((p) => p.id)} label={filtered ? t("downloadFiltered", { n: shown.length }) : t("downloadAll")} className="min-h-10" />
-        ) : null}
       </div>
 
       {shown.length === 0 ? (
@@ -119,9 +127,20 @@ export function MyPhotosView() {
                       </h4>
                       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
                         {v.photos.map((p) => (
-                          <li key={p.id}>
-                            {/* eslint-disable-next-line @next/next/no-img-element -- small cached thumbnails from our storage */}
-                            <img src={p.thumbUrl} alt={p.note ?? ""} loading="lazy" className="aspect-square w-full rounded-md bg-photo-surface object-cover" />
+                          <li key={p.id} className="flex flex-col gap-1">
+                            <div className="relative">
+                              {p.status === "rejected" ? (
+                                // the files of a rejected photo are deleted, so there is no picture to show
+                                <div className="aspect-square w-full rounded-md bg-photo-surface" />
+                              ) : (
+                                // eslint-disable-next-line @next/next/no-img-element -- small cached thumbnails from our storage
+                                <img src={p.thumbUrl} alt={p.note ?? ""} loading="lazy" className="aspect-square w-full rounded-md bg-photo-surface object-cover" />
+                              )}
+                              {p.status !== "active" ? <StatusBadge status={p.status} className="absolute bottom-1 left-1" /> : null}
+                            </div>
+                            {p.status === "rejected" ? (
+                              <span className="line-clamp-3 text-[11px] text-destructive">{p.review_note ? tv("rejectedReason", { note: p.review_note }) : tv("rejectedNoReason")}</span>
+                            ) : null}
                           </li>
                         ))}
                       </ul>

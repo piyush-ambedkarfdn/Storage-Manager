@@ -2,6 +2,7 @@ import {
   Activity,
   BookOpen,
   CalendarDays,
+  ClipboardCheck,
   FolderTree,
   FolderUp,
   HardDrive,
@@ -28,6 +29,7 @@ export type NavItem = {
 export const ADMIN_NAV: readonly NavItem[] = [
   { href: "/upload", labelKey: "navUpload", icon: Upload, feature: "upload" },
   { href: "/admin", labelKey: "navDashboard", icon: LayoutDashboard },
+  { href: "/admin/review", labelKey: "navReview", icon: ClipboardCheck },
   { href: "/admin/gallery", labelKey: "navGallery", icon: Images, feature: "gallery" },
   { href: "/admin/programs", labelKey: "navPrograms", icon: FolderTree, feature: "gallery" },
   { href: "/admin/calendar", labelKey: "navCalendar", icon: CalendarDays, feature: "calendar" },

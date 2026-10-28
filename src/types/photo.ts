@@ -3,7 +3,8 @@ import type { ProviderName } from "@/types/storage";
 export const CONSENT_VALUES = ["yes", "no", "unknown"] as const;
 export type Consent = (typeof CONSENT_VALUES)[number];
 
-export type PhotoStatus = "active" | "trashed" | "archived" | "purged";
+/** pending = waiting for an admin to review; rejected = an admin declined it (the files are deleted) */
+export type PhotoStatus = "pending" | "active" | "rejected" | "trashed" | "archived" | "purged";
 
 /** A photo as the browser receives it. Never contains storage secrets; thumbUrl is built by the server. */
 export type PhotoDto = {

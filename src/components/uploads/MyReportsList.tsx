@@ -9,13 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ActivityChip } from "@/components/shared/ActivityChip";
 import { ColorChip } from "@/components/shared/ColorChip";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { MyDownloadButton } from "@/components/uploads/MyDownloadButton";
 import { MyUploadsGrid } from "@/components/uploads/MyUploadsGrid";
 import { requestJson, useOptions } from "@/hooks/useOptions";
 import { useUploadQueue } from "@/hooks/useUploadQueue";
 import { useT } from "@/lib/i18n/provider";
 import { uploadMessages, type UploadKey } from "@/lib/i18n/messages/upload";
-import { myDownloadMessages } from "@/lib/i18n/messages/my-download";
 import { REPORT_PART_KEYS, type ReportWithPhotos } from "@/types/report";
 
 type Page = { reports: ReportWithPhotos[]; nextBefore: string | null };
@@ -23,7 +21,6 @@ type Page = { reports: ReportWithPhotos[]; nextBefore: string | null };
 /** My uploads: the person's own reports (as they wrote them) with their photos, newest first. */
 export function MyReportsList() {
   const t = useT(uploadMessages);
-  const td = useT(myDownloadMessages);
   const queue = useUploadQueue();
   const { allOptions: themes } = useOptions("theme");
   const themeById = new Map(themes.map((o) => [o.id, o]));
@@ -43,13 +40,6 @@ export function MyReportsList() {
           <Link href="/upload" className={buttonVariants({ variant: "outline", size: "sm", className: "min-h-9" })}>
             {t("openQueue")}
           </Link>
-        </div>
-      ) : null}
-
-      {reports.length ? (
-        <div className="flex flex-col gap-1">
-          <MyDownloadButton label={td("downloadAll")} className="min-h-11 w-full sm:w-auto" />
-          <p className="text-xs text-muted-foreground">{td("hint")}</p>
         </div>
       ) : null}
 
@@ -73,11 +63,6 @@ export function MyReportsList() {
                 <b>{r.event_date ? format(new Date(r.event_date), "d MMM yyyy") : ""}</b>
                 <ActivityChip id={r.activity_type} />
                 <span className="text-muted-foreground">{t("photosCount", { n: r.photos.length })}</span>
-                {r.photos.length ? (
-                  <span className="ml-auto">
-                    <MyDownloadButton photoIds={r.photos.map((p) => p.id)} label={td("downloadReport")} className="min-h-9" variant="ghost" />
-                  </span>
-                ) : null}
               </div>
               <div className="text-sm text-muted-foreground">
                 {r.program_name} · {r.place_path}

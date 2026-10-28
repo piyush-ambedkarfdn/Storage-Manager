@@ -14,10 +14,12 @@ type Ctx = { params: Promise<{ id: string }> };
  * Google Drive: the file is streamed through the server and cached privately by the browser.
  */
 export const GET = handle<Ctx>(async (req, ctx) => {
-  const { supabase } = await assertUser();
+  const { supabase, profile } = await assertUser();
   const { id } = await ctx.params;
   if (!z.uuid().safeParse(id).success) throw new ApiError(404, "Photo not found.");
   const { v } = parseQuery(mediaQuery, req.url);
+  // only admins can open or download the full-size photo; staff see thumbnails of their own photos
+  if (v === "original" && profile.role !== "admin") throw new ApiError(403, "Only admins can open the full-size photo.");
 
   const { data: photo } = await supabase
     .from("photos")

@@ -4,6 +4,9 @@ export type MyPhoto = {
   event_date: string | null;
   created_at: string;
   note: string | null;
+  /** pending = waiting for an admin, active = approved, rejected = declined (see review_note) */
+  status: "pending" | "active" | "rejected";
+  review_note: string | null;
   program_id: string | null;
   program_name: string | null;
   village_id: string | null;

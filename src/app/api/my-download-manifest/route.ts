@@ -1,14 +1,7 @@
-import { handle, parseBody } from "@/lib/api";
-import { assertUser } from "@/lib/auth";
-import { buildMyManifest } from "@/lib/download/my-manifest";
-import { myDownloadSchema } from "@/lib/schemas/my-download";
+import { NextResponse } from "next/server";
 
 /**
- * POST { photoIds? | all? } (any signed-in person): the download list for their OWN photos, organised
- * Village / Activity type / photo. The browser downloads and zips the files.
+ * DELETE THIS FILE. Staff can no longer download photos; only admins can (see api/review/download-manifest and
+ * the gallery download). Until it is deleted it only answers "not allowed".
  */
-export const POST = handle(async (req) => {
-  const session = await assertUser();
-  const input = await parseBody(myDownloadSchema, req);
-  return buildMyManifest(session, input);
-});
+export const POST = () => NextResponse.json({ error: "Downloads are for admins only." }, { status: 403 });

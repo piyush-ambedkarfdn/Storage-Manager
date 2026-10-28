@@ -86,7 +86,7 @@ export const GET = handle(async (req) => {
         .select(PHOTO_COLUMNS)
         .in("report_id", ids)
         .eq("uploaded_by", profile.id)
-        .eq("status", "active")
+        .in("status", ["pending", "active", "rejected"])
         .order("created_at")
     : { data: [], error: null };
   if (photoError) throw toApiError(photoError);

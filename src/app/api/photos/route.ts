@@ -43,6 +43,8 @@ export const POST = handle(async (req) => {
   }
 
   const row = {
+    // staff uploads wait for an admin to approve them; an admin's own uploads are approved at once
+    status: profile.role === "admin" ? "active" : "pending",
     uploaded_by: profile.id,
     report_id: report.id,
     taken_by: input.taken_by || profile.full_name,

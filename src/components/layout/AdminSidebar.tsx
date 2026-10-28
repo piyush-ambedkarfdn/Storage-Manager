@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ReviewBadge } from "@/components/review/ReviewBadge";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ADMIN_NAV } from "@/config/nav";
 import { isEnabled } from "@/config/features";
@@ -34,6 +35,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
           >
             <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             {t(item.labelKey)}
+            {item.href === "/admin/review" ? <ReviewBadge /> : null}
           </Link>
         );
       })}

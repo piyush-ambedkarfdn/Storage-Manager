@@ -1,7 +1,7 @@
 import "server-only";
 import { ApiError } from "@/lib/api";
 import type { Session } from "@/lib/auth";
-import { activityTypeOf } from "@/lib/download/my-manifest";
+import { activityTypeOf } from "@/lib/uploads/activity-type";
 import { getProvider } from "@/lib/storage";
 import type { MyPhoto } from "@/types/my-photos";
 import type { ProviderName } from "@/types/storage";
@@ -13,6 +13,8 @@ type Row = {
   event_date: string | null;
   created_at: string;
   note: string | null;
+  status: "pending" | "active" | "rejected";
+  review_note: string | null;
   program_id: string | null;
   village_id: string | null;
   storage_provider: ProviderName;
@@ -23,7 +25,7 @@ type Row = {
 };
 
 const SELECT =
-  "id, event_date, created_at, note, program_id, village_id, storage_provider, thumb_key, program:programs(name), village:villages(name), " +
+  "id, event_date, created_at, note, status, review_note, program_id, village_id, storage_provider, thumb_key, program:programs(name), village:villages(name), " +
   "values:photo_field_values(field:program_fields(label, sort_order), option:program_field_options(value, sort_order))";
 
 /** The person's own active photos, newest first (the page groups and filters them). */
@@ -32,7 +34,7 @@ export async function listMyPhotos(session: Session): Promise<MyPhoto[]> {
     .from("photos")
     .select(SELECT)
     .eq("uploaded_by", session.profile.id)
-    .eq("status", "active")
+    .in("status", ["pending", "active", "rejected"])
     .order("event_date", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(MY_PHOTOS_LIMIT);
@@ -42,6 +44,8 @@ export async function listMyPhotos(session: Session): Promise<MyPhoto[]> {
     event_date: r.event_date,
     created_at: r.created_at,
     note: r.note,
+    status: r.status,
+    review_note: r.review_note,
     program_id: r.program_id,
     program_name: r.program?.name ?? null,
     village_id: r.village_id,

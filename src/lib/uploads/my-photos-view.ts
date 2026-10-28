@@ -8,11 +8,12 @@ export type MyPhotoFilters = {
   program: string | null; // program id
   activity: string | null; // activity label, or NONE for photos without one
   village: string | null; // village id, or NONE
+  status: "pending" | "active" | "rejected" | null;
 };
-export const NO_FILTERS: MyPhotoFilters = { from: "", to: "", program: null, activity: null, village: null };
+export const NO_FILTERS: MyPhotoFilters = { from: "", to: "", program: null, activity: null, village: null, status: null };
 
 export function hasFilters(f: MyPhotoFilters): boolean {
-  return Boolean(f.from || f.to || f.program || f.activity || f.village);
+  return Boolean(f.from || f.to || f.program || f.activity || f.village || f.status);
 }
 
 export function filterPhotos(photos: MyPhoto[], f: MyPhotoFilters): MyPhoto[] {
@@ -22,6 +23,7 @@ export function filterPhotos(photos: MyPhoto[], f: MyPhotoFilters): MyPhoto[] {
     if (f.program && p.program_id !== f.program) return false;
     if (f.activity && (f.activity === NONE ? p.activity !== null : p.activity !== f.activity)) return false;
     if (f.village && (f.village === NONE ? p.village_id !== null : p.village_id !== f.village)) return false;
+    if (f.status && p.status !== f.status) return false;
     return true;
   });
 }
@@ -31,9 +33,11 @@ export function filterOptions(photos: MyPhoto[]) {
   const programs = new Map<string, string>();
   const villages = new Map<string, string>();
   const activities = new Set<string>();
+  const statuses = new Set<MyPhoto["status"]>();
   let noActivity = false;
   let noVillage = false;
   for (const p of photos) {
+    statuses.add(p.status);
     if (p.program_id) programs.set(p.program_id, p.program_name ?? "—");
     if (p.village_id) villages.set(p.village_id, p.village_name ?? "—");
     else noVillage = true;
@@ -47,6 +51,7 @@ export function filterOptions(photos: MyPhoto[]) {
     activities: [...activities].sort((a, b) => a.localeCompare(b)),
     noActivity,
     noVillage,
+    statuses: (["pending", "active", "rejected"] as const).filter((s) => statuses.has(s)),
   };
 }
 
