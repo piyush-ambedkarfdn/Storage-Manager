@@ -1,15 +1,11 @@
-export type CategoryValue = {
-  field: { label: string; sort_order: number } | null;
-  option: { value: string; sort_order: number } | null;
-};
+import { activityLabel } from "@/config/activity-types";
 
-/** The activity type of a photo: its program category called "...activity..." (CFW), else its first category. */
-export function activityTypeOf(values: CategoryValue[] | null | undefined): string | null {
-  const usable = (values ?? []).filter((v) => v.field && v.option);
-  const chosen =
-    usable.find((v) => /activity/i.test(v.field!.label)) ??
-    [...usable].sort((a, b) => a.field!.sort_order - b.field!.sort_order || a.option!.sort_order - b.option!.sort_order)[0];
-  return chosen?.option?.value ?? null;
+/**
+ * The activity type name of a photo (what staff picked in step 1: the program's own types, e.g. "Bridge Making" for
+ * GOONJ or "Governance" for Meeting/Workshop). Server code calls loadActivityTypes() first so the names are current.
+ */
+export function activityNameOf(id: string | null | undefined): string | null {
+  return id ? activityLabel(id, "en") : null;
 }
 
 export const NO_ACTIVITY_FOLDER = "No activity type";

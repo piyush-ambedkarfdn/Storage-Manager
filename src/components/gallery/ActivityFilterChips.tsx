@@ -6,11 +6,16 @@ import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { galleryMessages } from "@/lib/i18n/messages/gallery";
 
-/** Multi-select activity chips (retired types stay filterable for old photos). */
-export function ActivityFilterChips() {
+/**
+ * Multi-select activity chips (retired types stay filterable for old photos). With a program: that program's own types,
+ * or the general ones when it has none.
+ */
+export function ActivityFilterChips({ programId }: { programId?: string | null } = {}) {
   const t = useT(galleryMessages);
   const locale = useLocale();
-  const { all } = useActivityTypes();
+  const { all: every } = useActivityTypes();
+  const own = programId ? every.filter((a) => a.programId === programId) : [];
+  const all = programId ? (own.length ? own : every.filter((a) => !a.programId)) : every;
   const { filters, setFilters } = useGalleryFilters();
   const toggle = (id: string) =>
     setFilters({ activity: filters.activity.includes(id) ? filters.activity.filter((a) => a !== id) : [...filters.activity, id] });

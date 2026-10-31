@@ -14,6 +14,8 @@ export type ActivityType = {
   labelHi: string;
   color: string;
   retired?: boolean;
+  /** the program this type belongs to; null/undefined = a general type, used by programs that have no types of their own */
+  programId?: string | null;
 };
 
 export const DEFAULT_ACTIVITY_TYPES: readonly ActivityType[] = [
@@ -58,6 +60,19 @@ export function activityColor(id: string | null | undefined): string {
 }
 
 /** Database row → ActivityType. */
-export function fromRow(r: { id: string; label: string; label_hi: string | null; color: string; hidden: boolean }): ActivityType {
-  return { id: r.id, label: r.label, labelHi: r.label_hi || r.label, color: r.color, retired: r.hidden };
+export function fromRow(r: { id: string; label: string; label_hi: string | null; color: string; hidden: boolean; program_id?: string | null }): ActivityType {
+  return { id: r.id, label: r.label, labelHi: r.label_hi || r.label, color: r.color, retired: r.hidden, programId: r.program_id ?? null };
+}
+
+/**
+ * The types to offer for a program (upload step 1, filters): the program's own types when it has any (not retired),
+ * otherwise the general ones. With no program chosen yet: the general ones.
+ */
+export function activityTypesForProgram(list: readonly ActivityType[], programId: string | null | undefined): ActivityType[] {
+  const active = list.filter((a) => !a.retired);
+  if (programId) {
+    const own = active.filter((a) => a.programId === programId);
+    if (own.length) return own;
+  }
+  return active.filter((a) => !a.programId);
 }

@@ -1,7 +1,8 @@
 import "server-only";
 import { ApiError } from "@/lib/api";
 import type { Session } from "@/lib/auth";
-import { activityTypeOf } from "@/lib/uploads/activity-type";
+import { loadActivityTypes } from "@/lib/activity-types-server";
+import { activityNameOf } from "@/lib/uploads/activity-type";
 import { getProvider } from "@/lib/storage";
 import type { MyPhoto } from "@/types/my-photos";
 import type { ProviderName } from "@/types/storage";
@@ -21,15 +22,15 @@ type Row = {
   thumb_key: string;
   program: { name: string | null } | null;
   village: { name: string | null } | null;
-  values: { field: { label: string; sort_order: number } | null; option: { value: string; sort_order: number } | null }[];
+  activity_type: string | null;
 };
 
 const SELECT =
-  "id, event_date, created_at, note, status, review_note, program_id, village_id, storage_provider, thumb_key, program:programs(name), village:villages(name), " +
-  "values:photo_field_values(field:program_fields(label, sort_order), option:program_field_options(value, sort_order))";
+  "id, event_date, created_at, note, status, review_note, program_id, village_id, activity_type, storage_provider, thumb_key, program:programs(name), village:villages(name)";
 
 /** The person's own active photos, newest first (the page groups and filters them). */
 export async function listMyPhotos(session: Session): Promise<MyPhoto[]> {
+  await loadActivityTypes();
   const { data, error } = await session.supabase
     .from("photos")
     .select(SELECT)
@@ -50,7 +51,7 @@ export async function listMyPhotos(session: Session): Promise<MyPhoto[]> {
     program_name: r.program?.name ?? null,
     village_id: r.village_id,
     village_name: r.village?.name ?? null,
-    activity: activityTypeOf(r.values ?? []),
+    activity: activityNameOf(r.activity_type),
     thumbUrl: getProvider(r.storage_provider).thumbUrl(r.id, r.thumb_key),
   }));
 }

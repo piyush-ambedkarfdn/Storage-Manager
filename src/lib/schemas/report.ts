@@ -3,7 +3,8 @@ import { z } from "zod";
 const part = z.string().trim().max(2000, "Keep each answer under 2000 characters.");
 
 export const reportPartsSchema = z.object({
-  what_happened: part.min(1, "Write what happened."),
+  // whether "what happened" is required depends on the program (see lib/program-form/rules)
+  what_happened: part.default(""),
   problem: part.default(""),
   who_affected: part.default(""),
   result: part.default(""),
@@ -20,7 +21,8 @@ export const batchDetailsSchema = z.object({
   event_date: z.iso.date("Choose the date of the activity."),
   taken_by: z.string().trim().max(120).optional(),
   report_parts: reportPartsSchema,
-  theme_ids: z.array(z.uuid()).min(1, "Pick at least one problem theme.").max(3, "Pick at most three themes."),
+  // at least one problem theme is required only for programs that ask for themes (see lib/program-form/rules)
+  theme_ids: z.array(z.uuid()).max(3, "Pick at most three themes.").default([]),
   consent: z.enum(["yes", "no", "unknown"]),
   beneficiary_count: z.number().int().min(0).max(1_000_000).nullable().optional(),
   /** program categories for every photo of the batch: fieldId → optionIds */

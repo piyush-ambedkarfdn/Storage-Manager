@@ -3,7 +3,8 @@ import { ApiError } from "@/lib/api";
 import type { Session } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { toApiError } from "@/lib/options";
-import { activityTypeOf, type CategoryValue } from "@/lib/uploads/activity-type";
+import { loadActivityTypes } from "@/lib/activity-types-server";
+import { activityNameOf } from "@/lib/uploads/activity-type";
 import { getProvider } from "@/lib/storage";
 import type { ReviewDecisionResult, ReviewPhoto } from "@/types/review";
 import type { ProviderName } from "@/types/storage";
@@ -26,16 +27,16 @@ type Row = {
   village: { name: string | null } | null;
   district: { name: string | null } | null;
   uploader: { full_name: string | null } | null;
-  values: CategoryValue[];
+  activity_type: string | null;
 };
 
 const SELECT =
-  "id, created_at, event_date, note, consent, has_children, uploaded_by, program_id, village_id, storage_provider, thumb_key, " +
-  "program:programs(name), village:villages(name), district:districts(name), uploader:profiles!uploaded_by(full_name), " +
-  "values:photo_field_values(field:program_fields(label, sort_order), option:program_field_options(value, sort_order))";
+  "id, created_at, event_date, note, consent, has_children, uploaded_by, program_id, village_id, activity_type, storage_provider, thumb_key, " +
+  "program:programs(name), village:villages(name), district:districts(name), uploader:profiles!uploaded_by(full_name)";
 
 /** Photos waiting for review, newest first. Admin only (the caller checks). */
 export async function listPending(session: Session): Promise<ReviewPhoto[]> {
+  await loadActivityTypes();
   const { data, error } = await session.supabase
     .from("photos")
     .select(SELECT)
@@ -57,7 +58,7 @@ export async function listPending(session: Session): Promise<ReviewPhoto[]> {
     village_id: r.village_id,
     village_name: r.village?.name ?? null,
     district_name: r.district?.name ?? null,
-    activity: activityTypeOf(r.values ?? []),
+    activity: activityNameOf(r.activity_type),
     thumbUrl: getProvider(r.storage_provider).thumbUrl(r.id, r.thumb_key),
   }));
 }

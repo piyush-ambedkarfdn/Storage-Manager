@@ -4,7 +4,8 @@ import type { Session } from "@/lib/auth";
 import { csvCell, fileNameFor, safeSegment, uniquePaths, type PathValues } from "@/lib/download/paths";
 import { MAX_DOWNLOAD_PHOTOS } from "@/lib/schemas/gallery";
 import { getProvider } from "@/lib/storage";
-import { activityTypeOf, NO_ACTIVITY_FOLDER, NO_VILLAGE_FOLDER, type CategoryValue } from "@/lib/uploads/activity-type";
+import { loadActivityTypes } from "@/lib/activity-types-server";
+import { activityNameOf, NO_ACTIVITY_FOLDER, NO_VILLAGE_FOLDER } from "@/lib/uploads/activity-type";
 import type { DownloadManifest, ManifestFile } from "@/types/gallery";
 import type { ProviderName } from "@/types/storage";
 
@@ -19,19 +20,19 @@ type Row = {
   district: { name: string | null } | null;
   program: { name: string | null } | null;
   uploader: { full_name: string | null } | null;
-  values: CategoryValue[];
+  activity_type: string | null;
 };
 
 const SELECT =
-  "id, storage_provider, storage_key, size_bytes, event_date, created_at, village:villages(name), district:districts(name), program:programs(name), " +
-  "uploader:profiles!uploaded_by(full_name), " +
-  "values:photo_field_values(field:program_fields(label, sort_order), option:program_field_options(value, sort_order))";
+  "id, storage_provider, storage_key, size_bytes, event_date, created_at, activity_type, village:villages(name), district:districts(name), program:programs(name), " +
+  "uploader:profiles!uploaded_by(full_name)";
 
 /**
  * The download list for the photos waiting for review (admin only), as  Village / Activity type / photo.jpg  plus
  * _metadata.csv. The browser downloads the files and zips them, as in the gallery's download.
  */
 export async function buildReviewManifest(session: Session, input: { photoIds?: string[]; all?: boolean }): Promise<DownloadManifest> {
+  await loadActivityTypes();
   let q = session.supabase
     .from("photos")
     .select(SELECT)
@@ -52,7 +53,7 @@ export async function buildReviewManifest(session: Session, input: { photoIds?: 
 
   for (const r of rows) {
     const village = r.village?.name?.trim() || NO_VILLAGE_FOLDER;
-    const activity = activityTypeOf(r.values ?? []) ?? NO_ACTIVITY_FOLDER;
+    const activity = activityNameOf(r.activity_type) ?? NO_ACTIVITY_FOLDER;
     const folders = [safeSegment(village), safeSegment(activity)];
     const dirKey = folders.join("/");
     const seq = (counters.get(dirKey) ?? 0) + 1;

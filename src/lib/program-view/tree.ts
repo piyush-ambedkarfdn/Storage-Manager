@@ -3,7 +3,7 @@ import type { GalleryFilters } from "@/types/gallery";
 import type { ProgramTreeRow } from "@/types/program-view";
 
 /** What the gallery filters become when a node is chosen (null = no filter of that kind; the grid is the normal gallery grid). */
-export type ProgramSelect = { uploader: string | null; folder: string | null; option: string | null };
+export type ProgramSelect = { uploader: string | null; folder: string | null; activity: string | null };
 
 export type ProgramNode = {
   key: string;
@@ -35,7 +35,7 @@ export function buildProgramTree(rows: ProgramTreeRow[], programId: string, loca
         name: r.staff ?? labels.unknownStaff,
         count: 0,
         children: [],
-        select: r.staff_id ? { uploader: r.staff_id, folder: programId, option: null } : null,
+        select: r.staff_id ? { uploader: r.staff_id, folder: programId, activity: null } : null,
       };
       staffNodes.set(staffKey, staff);
       roots.push(staff);
@@ -53,22 +53,22 @@ export function buildProgramTree(rows: ProgramTreeRow[], programId: string, loca
         sub: r.district ?? undefined,
         count: 0,
         children: [],
-        select: r.staff_id ? { uploader: r.staff_id, folder, option: null } : null,
+        select: r.staff_id ? { uploader: r.staff_id, folder, activity: null } : null,
       };
       villageNodes.set(villageKey, village);
       staff.children.push(village);
     }
     village.count += n;
 
-    if (r.option_id) {
+    if (r.activity_id) {
       village.children.push({
-        key: `a:${villageKey}|${r.option_id}`,
+        key: `a:${villageKey}|${r.activity_id}`,
         kind: "activity",
-        name: (locale === "hi" && r.option_name_hi) || r.option_name || "",
-        color: r.option_color,
+        name: (locale === "hi" && r.activity_name_hi) || r.activity_name || "",
+        color: r.activity_color,
         count: n,
         children: [],
-        select: r.staff_id ? { uploader: r.staff_id, folder, option: r.option_id } : null,
+        select: r.staff_id ? { uploader: r.staff_id, folder, activity: r.activity_id } : null,
       });
     }
   }
@@ -85,7 +85,7 @@ export function isSelected(node: ProgramNode, f: GalleryFilters): boolean {
   return (
     (f.uploader ?? null) === node.select.uploader &&
     (f.folders.length === 1 ? f.folders[0] : null) === node.select.folder &&
-    (f.categories.length === 1 ? f.categories[0] : f.categories.length === 0 ? null : "many") === node.select.option
+    (f.activity.length === 1 ? f.activity[0] : f.activity.length === 0 ? null : "many") === node.select.activity
   );
 }
 

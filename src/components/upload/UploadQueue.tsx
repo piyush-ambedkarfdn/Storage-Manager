@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { CheckCircle2, CircleAlert, Copy, Loader2, Plus, RotateCcw, Trash2, WifiOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { BlobThumb } from "@/components/upload/Dropzone";
 import type { useUploadQueue } from "@/hooks/useUploadQueue";
 import { useT } from "@/lib/i18n/provider";
@@ -20,11 +21,27 @@ function statusText(i: QueueItem, t: TFunction<UploadKey>) {
   return t("failed");
 }
 
-/** Per-photo progress with clear states, retry, and an offline notice. */
-export function UploadQueue({ queue, onNewBatch }: { queue: Queue; onNewBatch?: () => void }) {
+const unfinished = (i: QueueItem) => i.status === "waiting" || i.status === "working" || i.status === "failed";
+
+/**
+ * Progress of the upload just sent, photo by photo, with retry and an offline notice. Uploads that finished earlier are
+ * not listed here (they are in My uploads); an earlier upload that is still going, or failed and can be retried, is
+ * listed so it is never lost.
+ */
+export function UploadQueue({ queue, batchId, onNewBatch }: { queue: Queue; /** the upload just sent; null when opened from the "still uploading" notice */ batchId?: string | null; onNewBatch?: () => void }) {
   const t = useT(uploadMessages);
   const tr = useT(reviewMessages);
-  const { items, batches, counts, online } = queue;
+  const { online } = queue;
+  const stillOpen = new Set(queue.items.filter(unfinished).map((i) => i.batchId));
+  const batches = queue.batches.filter((b) => b.id === batchId || stillOpen.has(b.id));
+  const shown = new Set(batches.map((b) => b.id));
+  const items = queue.items.filter((i) => shown.has(i.batchId));
+  const counts = {
+    done: items.filter((i) => i.status === "done").length,
+    duplicate: items.filter((i) => i.status === "duplicate").length,
+    failed: items.filter((i) => i.status === "failed").length,
+    pending: items.filter((i) => i.status === "waiting" || i.status === "working" || (i.status === "failed" && i.retryable)).length,
+  };
   const newBatchButton = onNewBatch ? (
     <Button className="min-h-12 w-full text-base" onClick={onNewBatch}>
       <Plus aria-hidden /> {t("newBatch")}
@@ -51,6 +68,9 @@ export function UploadQueue({ queue, onNewBatch }: { queue: Queue; onNewBatch?: 
           </p>
           <p className="text-sm text-muted-foreground">{tr("sentForReview")}</p>
           {newBatchButton}
+          <Link href="/my-uploads" className={buttonVariants({ variant: "outline", className: "min-h-11 w-full" })}>
+            {tr("seeMyUploads")}
+          </Link>
         </div>
       ) : null}
       {!online ? (
@@ -128,11 +148,6 @@ export function UploadQueue({ queue, onNewBatch }: { queue: Queue; onNewBatch?: 
         {counts.failed ? (
           <Button variant="outline" className="min-h-11" onClick={() => queue.retry()}>
             <RotateCcw aria-hidden /> {t("retryAll")}
-          </Button>
-        ) : null}
-        {counts.done + counts.duplicate > 0 ? (
-          <Button variant="outline" className="min-h-11" onClick={() => queue.clearDone()}>
-            {t("clearDone")}
           </Button>
         ) : null}
       </div>

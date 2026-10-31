@@ -22,6 +22,9 @@ import { activityLabel } from "@/config/activity-types";
 import { useProfile } from "@/hooks/useProfile";
 import { useUploadQueue } from "@/hooks/useUploadQueue";
 import { usePhotoPreparer } from "@/hooks/usePhotoPreparer";
+import { useProgramFormConfig } from "@/hooks/useProgramFormConfig";
+import { useActivityTypes } from "@/components/layout/ActivityTypesProvider";
+import { applyConfig, checkAgainstConfig } from "@/lib/program-form/rules";
 import { clearUploadDraft, loadUploadDraft, removeDraftPhoto, saveDraftForm, saveDraftPhoto } from "@/lib/upload/draft-db";
 import { uploadSafeMessages } from "@/lib/i18n/messages/uploadSafe";
 import { uuid } from "@/lib/uuid";
@@ -68,7 +71,12 @@ export function BatchForm() {
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  /** the upload just sent (step 3 shows only this one); null when step 3 was opened from the "still uploading" notice */
+  const [currentBatch, setCurrentBatch] = useState<string | null>(null);
   const ts = useT(uploadSafeMessages);
+  // the chosen program decides the activity types and which questions are asked
+  const formCfg = useProgramFormConfig(place.program_id);
+  const { forProgram } = useActivityTypes();
   const { prepare, cancel } = usePhotoPreparer(setPhotos);
   const [draftInfo, setDraftInfo] = useState<{ savedAt: number } | null>(null);
   /** true once the saved draft (if any) has been read, so we never overwrite it with an empty form */
@@ -176,22 +184,27 @@ export function BatchForm() {
       activity_type: activity,
       event_date: shownDate,
       taken_by: takenBy,
-      report_parts: report,
-      theme_ids: themes,
+      report_parts: applyConfig({ report_parts: report, theme_ids: themes }, formCfg).report_parts,
+      theme_ids: formCfg.ask_themes ? themes : [],
       consent,
       beneficiary_count: people.trim() ? Number(people) : null,
       // program categories are chosen per photo in step 2, not here
     };
     const parsed = batchDetailsSchema.safeParse(candidate);
-    if (parsed.success) {
+    // what is required depends on the program (for example a meeting asks no report questions or themes)
+    const programIssues = checkAgainstConfig({ report_parts: candidate.report_parts, theme_ids: candidate.theme_ids }, formCfg);
+    if (parsed.success && !programIssues.length) {
       setErrors({});
       return parsed.data;
     }
     const map: Record<string, string> = {};
-    for (const issue of parsed.error.issues) {
-      const key = issue.path[0] === "report_parts" ? "report" : String(issue.path[0]);
-      map[key] ??= issue.message;
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] === "report_parts" ? "report" : String(issue.path[0]);
+        map[key] ??= issue.message;
+      }
     }
+    for (const issue of programIssues) map[issue.field] ??= issue.message;
     setErrors(map);
     toast.error(t("fixErrors"));
     return null;
@@ -260,10 +273,13 @@ export function BatchForm() {
         prepared: { width: p.width, height: p.height, thumb: p.thumb as Blob, takenAt: p.takenAt },
       }));
       // a phone that is out of space can make this hang: stop waiting after 45 seconds and say so
-      await Promise.race([
+      // earlier finished uploads are not kept on the phone once a new one starts (they are in My uploads)
+      await queue.clearDone().catch(() => undefined);
+      const batchId = await Promise.race([
         queue.add(d, label, items),
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error("slow")), 45_000)),
       ]);
+      setCurrentBatch(batchId);
       const left = photos.length - ready.length;
       if (left > 0) toast.info(ts("skipped", { n: left }));
       keptKeys.current.clear();
@@ -290,6 +306,7 @@ export function BatchForm() {
     setThemes([]);
     setPeople("");
     setDateTouched(false);
+    setCurrentBatch(null);
     setStep(1);
   }
 
@@ -325,7 +342,11 @@ export function BatchForm() {
       {step !== 3 && queue.counts.pending > 0 ? (
         <div className="flex items-center justify-between gap-2 rounded-md border bg-card px-3 py-2 text-sm">
           <span>{t("pendingNotice", { n: queue.counts.pending })}</span>
-          <Button variant="outline" size="sm" className="min-h-9" onClick={() => setStep(3)}>
+          <Button variant="outline" size="sm" className="min-h-9" onClick={() => {
+              setCurrentBatch(null);
+              setStep(3);
+            }}
+          >
             {t("openQueue")}
           </Button>
         </div>
@@ -347,6 +368,10 @@ export function BatchForm() {
                 // categories belong to a program: photos already added start again without them
                 setPhotos((list) => list.map((x) => ({ ...x, override: { ...x.override, field_values: {} } })));
                 setMissing(new Map());
+              }
+              if (next.program_id !== place.program_id) {
+                // each program has its own activity types: forget a choice the new program does not offer
+                if (!forProgram(next.program_id).some((a) => a.id === activity)) setActivity("");
               }
               setPlace(next);
             }}
@@ -376,9 +401,9 @@ export function BatchForm() {
           {dateFromPhoto ? <p className="-mt-3 text-xs text-muted-foreground">{t("dateFromPhoto")}</p> : null}
           {errors.event_date ? <p className="-mt-3 text-xs text-destructive">{errors.event_date}</p> : null}
 
-          <ActivityTypePicker value={activity} onChange={setActivity} error={errors.activity_type} />
-          <ReportField value={report} onChange={setReport} error={errors.report} />
-          <ThemePicker value={themes} onChange={setThemes} report={report} error={errors.theme_ids} />
+          <ActivityTypePicker value={activity} onChange={setActivity} error={errors.activity_type} programId={place.program_id} />
+          {formCfg.report_parts.length ? <ReportField value={report} onChange={setReport} error={errors.report} parts={formCfg.report_parts} /> : null}
+          {formCfg.ask_themes ? <ThemePicker value={themes} onChange={setThemes} report={report} error={errors.theme_ids} /> : null}
           <ConsentField value={consent} onChange={setConsent} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="people">{t("people")}</Label>
@@ -433,7 +458,7 @@ export function BatchForm() {
         </div>
       ) : null}
 
-      {step === 3 ? <UploadQueue queue={queue} onNewBatch={newBatch} /> : null}
+      {step === 3 ? <UploadQueue queue={queue} batchId={currentBatch} onNewBatch={newBatch} /> : null}
     </div>
   );
 }

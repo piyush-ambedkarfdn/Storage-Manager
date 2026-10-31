@@ -5,11 +5,15 @@ import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { uploadMessages } from "@/lib/i18n/messages/upload";
 
-/** Coloured activity chips (admin-managed in Settings > Lists; stores the id, never the label). */
-export function ActivityTypePicker({ value, onChange, error }: { value: string; onChange: (id: string) => void; error?: string }) {
+/**
+ * Coloured activity chips for the chosen program (managed in Settings > Programs; programs without types of their own
+ * offer the general list from Settings > Lists). Stores the id, never the label.
+ */
+export function ActivityTypePicker({ value, onChange, error, programId }: { value: string; onChange: (id: string) => void; error?: string; programId?: string | null }) {
   const t = useT(uploadMessages);
   const locale = useLocale();
-  const { active } = useActivityTypes();
+  const { forProgram } = useActivityTypes();
+  const active = forProgram(programId);
   return (
     <fieldset aria-invalid={!!error || undefined} aria-describedby={error ? "err-activity" : undefined}>
       <legend className="mb-1.5 text-sm font-semibold">{t("activity")}</legend>

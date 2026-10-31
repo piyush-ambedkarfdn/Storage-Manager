@@ -4,6 +4,7 @@ export const reviewMessages = defineMessages({
   en: {
     // staff
     sentForReview: "Your photos were sent for review. An admin will check them, and approved photos are added to the library.",
+    seeMyUploads: "See all my uploads",
     statusPending: "Waiting for review",
     statusActive: "Approved",
     statusRejected: "Rejected",
@@ -64,6 +65,7 @@ export const reviewMessages = defineMessages({
   },
   hi: {
     sentForReview: "आपकी फोटो समीक्षा के लिए भेज दी गईं। एडमिन उन्हें जाँचेगा, और मंज़ूर फोटो लाइब्रेरी में जुड़ जाएँगी।",
+    seeMyUploads: "मेरे सभी अपलोड देखें",
     statusPending: "समीक्षा की प्रतीक्षा में",
     statusActive: "मंज़ूर",
     statusRejected: "अस्वीकृत",

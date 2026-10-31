@@ -15,7 +15,7 @@ export async function loadActivityTypes(): Promise<readonly ActivityType[]> {
   try {
     const { data, error } = await createAdminClient()
       .from("activity_types")
-      .select("id, label, label_hi, color, hidden")
+      .select("id, label, label_hi, color, hidden, program_id")
       .order("sort_order")
       .order("label");
     if (!error && data?.length) {

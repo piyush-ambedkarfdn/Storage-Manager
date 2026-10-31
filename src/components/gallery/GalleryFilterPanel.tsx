@@ -36,8 +36,8 @@ export function GalleryFilterPanel() {
 
   function choose(value: string) {
     if (value === SEVERAL) return;
-    // a program's categories belong to it: switching program starts them again
-    setFilters({ folders: value === ALL ? [] : [value], categories: [] });
+    // a program's categories and activity types belong to it: switching program starts them again
+    setFilters({ folders: value === ALL ? [] : [value], categories: [], activity: [] });
   }
 
   return (
@@ -81,7 +81,7 @@ export function GalleryFilterPanel() {
             {hasCategories ? <CategoryFilterChips programId={program} /> : <p className="text-xs text-muted-foreground">{t("noCategories")}</p>}
             <div className="flex flex-col gap-1">
               <span className="text-xs font-medium text-muted-foreground">{t("activityType")}</span>
-              <ActivityFilterChips />
+              <ActivityFilterChips programId={program} />
             </div>
           </div>
         ) : (

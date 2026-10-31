@@ -2,8 +2,11 @@ import { defineMessages } from "@/lib/i18n";
 
 export const activityTypesMessages = defineMessages({
   en: {
-    title: "Activity types",
-    body: "What kind of activity a photo shows. Staff pick one while uploading. Renaming or recolouring changes every photo at once; hide a type to stop offering it (old photos keep it).",
+    title: "General activity types",
+    body: "What kind of activity a photo shows. These are offered for programs that have no activity types of their own (add those in Programs). Renaming or recolouring changes every photo at once; hide a type to stop offering it (old photos keep it).",
+    titleProgram: "Activity types: {program}",
+    bodyProgram: "Staff pick one of these in step 1 of the upload when they choose this program. Renaming or recolouring changes every photo at once; hide a type to stop offering it (old photos keep it).",
+    noOwnTypes: "This program has no activity types yet, so the general list is offered. Add the first one below to give it its own list.",
     name: "Name",
     nameHi: "Hindi",
     colour: "Colour",
@@ -21,8 +24,11 @@ export const activityTypesMessages = defineMessages({
     saved: "Saved.",
   },
   hi: {
-    title: "गतिविधि के प्रकार",
-    body: "फोटो में किस तरह की गतिविधि है। स्टाफ अपलोड करते समय एक चुनते हैं। नाम या रंग बदलने से हर फोटो एक साथ बदलती है; किसी प्रकार को देना बंद करने के लिए छिपाएँ (पुरानी फोटो में बना रहेगा)।",
+    title: "सामान्य गतिविधि के प्रकार",
+    body: "फोटो में किस तरह की गतिविधि है। ये उन प्रोग्राम के लिए दिखते हैं जिनके अपने गतिविधि प्रकार नहीं हैं (अपने प्रकार प्रोग्राम में जोड़ें)। नाम या रंग बदलने से हर फोटो एक साथ बदलती है; किसी प्रकार को देना बंद करने के लिए छिपाएँ (पुरानी फोटो में बना रहेगा)।",
+    titleProgram: "गतिविधि के प्रकार: {program}",
+    bodyProgram: "इस प्रोग्राम को चुनने पर स्टाफ अपलोड के चरण 1 में इनमें से एक चुनते हैं। नाम या रंग बदलने से हर फोटो एक साथ बदलती है; किसी प्रकार को देना बंद करने के लिए छिपाएँ (पुरानी फोटो में बना रहेगा)।",
+    noOwnTypes: "इस प्रोग्राम के अभी कोई गतिविधि प्रकार नहीं हैं, इसलिए सामान्य सूची दिखती है। अपनी सूची के लिए नीचे पहला प्रकार जोड़ें।",
     name: "नाम",
     nameHi: "हिंदी",
     colour: "रंग",

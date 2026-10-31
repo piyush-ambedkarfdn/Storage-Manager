@@ -164,11 +164,14 @@ export function useUploadQueue() {
       const mine = items.filter((i) => i.batchId === b.id);
       if (mine.length && mine.every((i) => i.status === "done" || i.status === "duplicate")) {
         notified.current.add(b.id);
-        void fetch("/api/ai/summarize-report", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reportId: b.reportId }),
-        }).catch(() => undefined);
+        // programs without report questions (for example meetings) have nothing to summarise
+        if (Object.values(b.details.report_parts ?? {}).some((v) => typeof v === "string" && v.trim())) {
+          void fetch("/api/ai/summarize-report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reportId: b.reportId }),
+          }).catch(() => undefined);
+        }
         const photoIds = mine.map((i) => i.photoId).filter(Boolean);
         if (photoIds.length) {
           void fetch("/api/ai/describe", {

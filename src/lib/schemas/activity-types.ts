@@ -6,6 +6,8 @@ export const createActivityTypeSchema = z.object({
   label: z.string().trim().min(1, "Write a name.").max(60),
   label_hi: z.string().trim().max(60).nullable().optional(),
   color: color.default("#7A8AA3"),
+  /** the program this type is for; leave out for a general type */
+  program_id: z.uuid().nullable().optional(),
 });
 
 export const updateActivityTypeSchema = z

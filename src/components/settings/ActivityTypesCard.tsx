@@ -97,11 +97,16 @@ function Row({ a, first, last, onMove }: { a: ActivityType; first: boolean; last
   );
 }
 
-/** Settings > Lists: add, rename, recolour, reorder, hide and delete activity types. */
-export function ActivityTypesCard() {
+/**
+ * Add, rename, recolour, reorder, hide and delete activity types.
+ * Without `programId` this is the general list (Settings > Lists), offered by programs that have no types of their own;
+ * with a program it is that program's own list (Settings > Programs).
+ */
+export function ActivityTypesCard({ programId = null, programName, bare = false }: { programId?: string | null; programName?: string; /** no frame or heading (inside a dialog) */ bare?: boolean }) {
   const t = useT(activityTypesMessages);
   const run = useRun();
-  const { all } = useActivityTypes();
+  const { all: everyType } = useActivityTypes();
+  const all = everyType.filter((a) => (a.programId ?? null) === programId);
   const [draft, setDraft] = useState("");
   const [draftHi, setDraftHi] = useState("");
   const [draftColor, setDraftColor] = useState("#7A8AA3");
@@ -113,9 +118,10 @@ export function ActivityTypesCard() {
   }
 
   return (
-    <section className="flex flex-col gap-2 rounded-lg border bg-card p-4">
-      <h2 className="text-base font-semibold">{t("title")}</h2>
-      <p className="text-sm text-muted-foreground">{t("body")}</p>
+    <section className={bare ? "flex flex-col gap-2" : "flex flex-col gap-2 rounded-lg border bg-card p-4"}>
+      {bare ? null : <h2 className="text-base font-semibold">{programId ? t("titleProgram", { program: programName ?? "" }) : t("title")}</h2>}
+      <p className="text-sm text-muted-foreground">{programId ? t("bodyProgram") : t("body")}</p>
+      {programId && all.length === 0 ? <p className="rounded-md bg-secondary/60 px-3 py-2 text-sm">{t("noOwnTypes")}</p> : null}
       <ul>
         {all.map((a, i) => (
           <Row key={`${a.id}:${a.label}:${a.labelHi}:${a.color}:${a.retired}`} a={a} first={i === 0} last={i === all.length - 1} onMove={(d) => move(i, d)} />
@@ -127,7 +133,7 @@ export function ActivityTypesCard() {
           e.preventDefault();
           const label = draft.trim();
           if (!label) return;
-          const body = { label, label_hi: draftHi.trim() || null, color: draftColor };
+          const body = { label, label_hi: draftHi.trim() || null, color: draftColor, program_id: programId };
           setDraft("");
           setDraftHi("");
           void run(() => requestJson("/api/activity-types", { method: "POST", body }), t("saved"));

@@ -1,3 +1,5 @@
+import { applyConfig, checkAgainstConfig } from "@/lib/program-form/rules";
+import { loadProgramFormConfig } from "@/lib/program-form/server";
 import { ApiError, handle, parseBody, parseQuery } from "@/lib/api";
 import { assertUser } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
@@ -21,8 +23,19 @@ export const POST = handle(async (req) => {
   const { data: existing } = await supabase.from("field_reports").select("id").eq("client_ref", input.client_ref).maybeSingle();
   if (existing) return { id: existing.id as string, existed: true };
 
-  const { data: themes } = await supabase.from("calendar_options").select("id").eq("type", "theme").in("id", input.theme_ids);
-  if ((themes ?? []).length !== input.theme_ids.length) throw new ApiError(400, "One of the chosen themes no longer exists. Pick again.");
+  // the program decides which questions are asked and required
+  const cfg = await loadProgramFormConfig(supabase, input.program_id);
+  const issue = checkAgainstConfig(input, cfg)[0];
+  if (issue) throw new ApiError(400, issue.message);
+  const answers = applyConfig(input, cfg);
+
+  // an activity type made for another program cannot be used here
+  const { data: type } = await supabase.from("activity_types").select("id, program_id").eq("id", input.activity_type).maybeSingle();
+  if (!type) throw new ApiError(400, "This activity type no longer exists. Pick again.");
+  if (type.program_id && type.program_id !== input.program_id) throw new ApiError(400, "This activity type belongs to another program. Pick again.");
+
+  const { data: themes } = await supabase.from("calendar_options").select("id").eq("type", "theme").in("id", answers.theme_ids);
+  if ((themes ?? []).length !== answers.theme_ids.length) throw new ApiError(400, "One of the chosen themes no longer exists. Pick again.");
 
   const { data, error } = await supabase
     .from("field_reports")
@@ -36,9 +49,9 @@ export const POST = handle(async (req) => {
       village_id: input.village_id ?? null,
       activity_type: input.activity_type,
       event_date: input.event_date,
-      report: joinReport(input.report_parts),
-      report_parts: input.report_parts,
-      theme_ids: input.theme_ids,
+      report: joinReport(answers.report_parts),
+      report_parts: answers.report_parts,
+      theme_ids: answers.theme_ids,
       beneficiary_count: input.beneficiary_count ?? null,
     })
     .select("id")
@@ -50,7 +63,7 @@ export const POST = handle(async (req) => {
     }
     throw toApiError(error);
   }
-  await logActivity({ action: "report_created", entityType: "field_report", entityId: data.id, detail: { themes: input.theme_ids.length } });
+  await logActivity({ action: "report_created", entityType: "field_report", entityId: data.id, detail: { themes: answers.theme_ids.length } });
   return { id: data.id as string, existed: false };
 });
 

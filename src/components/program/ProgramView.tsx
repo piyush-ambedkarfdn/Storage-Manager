@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PhotoGrid } from "@/components/gallery/PhotoGrid";
@@ -24,9 +23,8 @@ export function ProgramView() {
   const { filters, setFilters } = useGalleryFilters();
   const first = filters.folders[0]?.split("/")[0];
   const programId = first && first !== "none" ? first : null;
-  const [fieldId, setFieldId] = useState<string | null>(null);
   const [expandedOverride, setExpanded] = useState<Set<string> | null>(null);
-  const query = useProgramView(programId, fieldId);
+  const query = useProgramView(programId);
   const data = query.data;
 
   const tree = useMemo(
@@ -44,16 +42,14 @@ export function ProgramView() {
   }, [tree]);
 
   const program = data?.programs.find((p) => p.program_id === programId);
-  const fieldLabel = (f: { label: string; label_hi: string | null }) => (locale === "hi" && f.label_hi) || f.label;
 
   function chooseProgram(id: string) {
-    setFieldId(null);
     setExpanded(null);
-    setFilters({ folders: [id], uploader: undefined, categories: [] });
+    setFilters({ folders: [id], uploader: undefined, categories: [], activity: [] });
   }
   function chooseNode(node: ProgramNode) {
     if (!programId || !node.select) return;
-    setFilters({ folders: [node.select.folder ?? programId], uploader: node.select.uploader ?? undefined, categories: node.select.option ? [node.select.option] : [] });
+    setFilters({ folders: [node.select.folder ?? programId], uploader: node.select.uploader ?? undefined, activity: node.select.activity ? [node.select.activity] : [] });
   }
   function toggle(key: string) {
     const next = new Set(expanded);
@@ -93,23 +89,6 @@ export function ProgramView() {
 
         {programId && data ? (
           <div className="flex flex-col gap-2 border-t p-2">
-            {data.fields.length > 1 ? (
-              <label className="flex flex-col gap-1 text-xs font-medium">
-                {t("activityType")}
-                <Select value={data.fieldId ?? undefined} onValueChange={(v) => setFieldId(v)}>
-                  <SelectTrigger className="h-9" aria-label={t("activityType")}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {data.fields.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {fieldLabel(f)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </label>
-            ) : null}
             {tree.length ? (
               <>
                 <div className="flex gap-1.5">
